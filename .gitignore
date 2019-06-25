@@ -1,0 +1,4 @@
+*.csv
+*.log
+TrajVis.xcodeproj/
+TrajVis/trajectories/

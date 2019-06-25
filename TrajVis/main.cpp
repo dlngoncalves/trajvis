@@ -15,8 +15,9 @@
 #include <stdarg.h>
 #define _USE_MATH_DEFINES
 #include <math.h>
-#include "objLoader.h"
+//#include "objLoader.h"
 #include "Camera.h"
+#include "TrajParser.h"
 #include <random>
 #include "time.h"
 #include <iostream>
@@ -34,6 +35,7 @@ int g_gl_height = 1050;
 GLFWwindow* g_window = NULL;
 
 Camera camera;
+
 GLfloat lastx = g_gl_width/2, lasty = g_gl_height/2;
 bool firstMouse = true;
 
@@ -53,91 +55,14 @@ GLuint cube_vao;
 GLuint cube_texture;
 GLuint tex_cube;
 
-float cube_points[] = {
-//    -100.0f,  100.0f, -100.0f,
-//    -100.0f, -100.0f, -100.0f,
-//    100.0f, -100.0f, -100.0f,
-//    100.0f, -100.0f, -100.0f,
-//    100.0f,  100.0f, -100.0f,
-//    -100.0f,  100.0f, -100.0f,
-//
-//    -100.0f, -100.0f,  100.0f,
-//    -100.0f, -100.0f, -100.0f,
-//    -100.0f,  100.0f, -100.0f,
-//    -100.0f,  100.0f, -100.0f,
-//    -100.0f,  100.0f,  100.0f,
-//    -100.0f, -100.0f,  100.0f,
-//
-//    100.0f, -100.0f, -100.0f,
-//    100.0f, -100.0f,  100.0f,
-//    100.0f,  100.0f,  100.0f,
-//    100.0f,  100.0f,  100.0f,
-//    100.0f,  100.0f, -100.0f,
-//    100.0f, -100.0f, -100.0f,
-//
-//    -100.0f, -100.0f,  100.0f,
-//    -100.0f,  100.0f,  100.0f,
-//    100.0f,  100.0f,  100.0f,
-//    100.0f,  100.0f,  100.0f,
-//    100.0f, -100.0f,  100.0f,
-//    -100.0f, -100.0f,  100.0f,
-//
-//    -100.0f,  100.0f, -100.0f,
-//    100.0f,  100.0f, -100.0f,
-//    100.0f,  100.0f,  100.0f,
-//    100.0f,  100.0f,  100.0f,
-//    -100.0f,  100.0f,  100.0f,
-//    -100.0f,  100.0f, -100.0f,
-//
-//    -100.0f, -100.0f, -100.0f,
-//    -100.0f, -100.0f,  100.0f,
-//    100.0f, -100.0f, -100.0f,
-//    100.0f, -100.0f, -100.0f,
-//    -100.0f, -100.0f,  100.0f,
-//    100.0f, -100.0f,  100.0f
-    -10.0f,  10.0f, -10.0f,
-    -10.0f, -10.0f, -10.0f,
-    10.0f, -10.0f, -10.0f,
-    10.0f, -10.0f, -10.0f,
-    10.0f,  10.0f, -10.0f,
-    -10.0f,  10.0f, -10.0f,
-    
-    -10.0f, -10.0f,  10.0f,
-    -10.0f, -10.0f, -10.0f,
-    -10.0f,  10.0f, -10.0f,
-    -10.0f,  10.0f, -10.0f,
-    -10.0f,  10.0f,  10.0f,
-    -10.0f, -10.0f,  10.0f,
-    
-    10.0f, -10.0f, -10.0f,
-    10.0f, -10.0f,  10.0f,
-    10.0f,  10.0f,  10.0f,
-    10.0f,  10.0f,  10.0f,
-    10.0f,  10.0f, -10.0f,
-    10.0f, -10.0f, -10.0f,
-    
-    -10.0f, -10.0f,  10.0f,
-    -10.0f,  10.0f,  10.0f,
-    10.0f,  10.0f,  10.0f,
-    10.0f,  10.0f,  10.0f,
-    10.0f, -10.0f,  10.0f,
-    -10.0f, -10.0f,  10.0f,
-    
-    -10.0f,  10.0f, -10.0f,
-    10.0f,  10.0f, -10.0f,
-    10.0f,  10.0f,  10.0f,
-    10.0f,  10.0f,  10.0f,
-    -10.0f,  10.0f,  10.0f,
-    -10.0f,  10.0f, -10.0f,
-    
-    -10.0f, -10.0f, -10.0f,
-    -10.0f, -10.0f,  10.0f,
-    10.0f, -10.0f, -10.0f,
-    10.0f, -10.0f, -10.0f,
-    -10.0f, -10.0f,  10.0f,
-    10.0f, -10.0f,  10.0f
+struct shader_traj_point
+{
+    float lat;
+    float lon;
+    float ele;
 };
 
+//might use a framebuffer? maybe we  only render the trajectories in screen space? might try some different things
 void CreateFrameBuffer()
 {
     glGenFramebuffers(1, &frameBuffer);
@@ -152,63 +77,8 @@ void CreateFrameBuffer()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 }
 
-void CreateNormalTexture()
-{
-    
-}
 
-void CreateCubeMap()
-{
-    glGenBuffers(1, &cube_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, cube_vbo);
-    glBufferData(GL_ARRAY_BUFFER, 3*36*sizeof(float), &cube_points, GL_STATIC_DRAW);
-    
-    glGenVertexArrays(1, &cube_vao);
-    glBindVertexArray(cube_vao);
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, cube_vbo);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-    
-}
-
-bool load_cube_map_side(GLuint texture, GLenum side_target, const char* file_name)
-{
-    glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
-    int x,y,n;
-    int force_channels = 4;
-    unsigned char* image_data = stbi_load(file_name, &x, &y, &n, force_channels);
-    
-    //dont care about not loading or non power of two error for now
-    
-    glTexImage2D(side_target, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-    
-    free(image_data);
-    return true;
-    
-}
-
-void create_cube_map(const char* front, const char* back, const char* top, const char* bottom, const char* left, const char* right, GLuint *tex_cube)
-{
-    glActiveTexture(GL_TEXTURE0);
-    glGenTextures(1, tex_cube);
-    
-    load_cube_map_side(*tex_cube, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, front);
-    load_cube_map_side(*tex_cube, GL_TEXTURE_CUBE_MAP_POSITIVE_Z, back);
-    load_cube_map_side(*tex_cube, GL_TEXTURE_CUBE_MAP_POSITIVE_Y, top);
-    load_cube_map_side(*tex_cube, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, bottom);
-    load_cube_map_side(*tex_cube, GL_TEXTURE_CUBE_MAP_NEGATIVE_X, left);
-    load_cube_map_side(*tex_cube, GL_TEXTURE_CUBE_MAP_POSITIVE_X, right);
-    
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-}
-
-
-
+//shoud move this sort of thing into the inputManager class
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
     if (firstMouse)
@@ -247,7 +117,18 @@ int main () {
 /*------------------------------start GL context------------------------------*/
 	assert (start_gl ());
 
-    camera.cameraPosition = glm::vec3(0.0, 3.0, 12.0);
+    //setting camera parameters like this is kinda weird
+    //24.3,2019-05-09T16:21:18Z,-30.0572580,-51.1717820
+    //camera.cameraPosition = glm::vec3(-51.0, -30.0, 20.0);
+    //posx    float    -5696417
+    //posy    float    -3510912
+    //just using first point as starting for testing
+    //camera.cameraPosition = glm::vec3(-5696417, -3510912, 30.0);
+//    camera.cameraPosition = glm::vec3(0, 0, 30.0);
+    
+    camera.cameraPosition = TrajParser::basePosition;
+    camera.cameraPosition.z = 100;
+    //camera.cameraPosition.y = 50;
     camera.cameraFront = glm::vec3(0.0, 0.0, -1.0);
     camera.cameraUp = glm::vec3(0.0, 1.0, 0.0);
     camera.cameraSpeed = 0.05;
@@ -256,82 +137,66 @@ int main () {
     
     glfwSetCursorPosCallback(g_window, mouse_callback);
     
-	GLfloat wavelenght[NUM_WAVES];
-	GLfloat amplitude[NUM_WAVES];
-	GLfloat speed[NUM_WAVES];
-	GLfloat directionX[NUM_WAVES];
-	GLfloat directionY[NUM_WAVES];
-    GLfloat steepness[NUM_WAVES];
-    GLfloat phase[NUM_WAVES];
+    //need to change here to get all trajectory files on dir -- but will have to figure something to get files on demand
     
-	float* points = NULL;
-	float* tex_coords = NULL;
-	float* normals = NULL;
-	
-	int pointCount;
-	if (!load_obj_file(
-		"large.obj",
-		points,
-		tex_coords,
-		normals,
-		pointCount
-		)) {
-		fprintf(stderr, "ERROR loading plane mesh %s\n", "large.obj");
-		return false;
-	}
+    TrajParser::basePosition = glm::vec3(0,0,0);
+    
+    TrajParser trajetory("trajectories/walk_11.csv");
+    TrajParser trajetory2("trajectories/walk_16.csv");
+    TrajParser trajetory3("trajectories/walk_17.csv");
+    TrajParser trajetory4("trajectories/walk_20.csv");
+    
+    
+    //testing one big array
+    std::vector<glm::vec3> allpos;
+    allpos.insert(allpos.begin(),trajetory.positions.begin(),trajetory.positions.end());
+    allpos.insert(allpos.end(),trajetory2.positions.begin(),trajetory2.positions.end());
+    allpos.insert(allpos.end(),trajetory3.positions.begin(),trajetory3.positions.end());
+    allpos.insert(allpos.end(),trajetory4.positions.begin(),trajetory4.positions.end());
+    //using this for trajPoints
+    
+    //float* points = static_cast<float*>(glm::value_ptr(trajetory.positions.front()));
+    float* points = static_cast<float*>(glm::value_ptr(allpos.front()));
+    
+//    float* points2 = static_cast<float*>(glm::value_ptr(trajetory2.positions.front()));
+//    float* points3 = static_cast<float*>(glm::value_ptr(trajetory3.positions.front()));
+//    float* points4 = static_cast<float*>(glm::value_ptr(trajetory4.positions.front()));
+    
+    int pointCount;//probably wont need this
+    
+    //removing all the stuff from the old project related to the waves
 
+    //gonna need some buffers for trajdata, i guess - one buffer per trajectory or one buffer for all the data?
+    //also if using one giant buffer maybe use a ssbo instead -
     
     
     
-	srand(1000);
-    
-    //we are not checking to see if the distribuition of the values generated make sense in the context they are used.
-    //also, we are not changing these parameters at all after the initial load, thats weird/bad
-	for (int i = 0; i < NUM_WAVES; i++){
-		//gera os parametros de cada onda
-
-		wavelenght[i] = ((float)rand() / RAND_MAX);
-		amplitude[i]  = ((float)rand() / RAND_MAX);
-		speed[i] = ((float)rand() / RAND_MAX);
-		directionX[i] = ((float)rand() / RAND_MAX);
-		directionY[i] = ((float)rand() / RAND_MAX);
-        steepness[i] = ((float)rand() / RAND_MAX);
-        phase[i] = ((float)rand() / RAND_MAX);
-	}
-
 	GLuint points_vbo;
 	glGenBuffers (1, &points_vbo);
 	glBindBuffer (GL_ARRAY_BUFFER, points_vbo);
-	glBufferData (GL_ARRAY_BUFFER, 3 * pointCount * sizeof (GLfloat), points, GL_STATIC_DRAW);
-	
-	GLuint normals_vbo;
-	glGenBuffers (1, &normals_vbo);
-	glBindBuffer (GL_ARRAY_BUFFER, normals_vbo);
-	glBufferData(GL_ARRAY_BUFFER, 3 * pointCount * sizeof (GLfloat), normals, GL_STATIC_DRAW);
-
+	//glBufferData (GL_ARRAY_BUFFER, 3 * pointCount * sizeof (GLfloat), points, GL_STATIC_DRAW);
+	//glBufferData (GL_ARRAY_BUFFER, 3 * trajetory.positions.size() * sizeof (float), points, GL_STATIC_DRAW);
+    
+    glBufferData (GL_ARRAY_BUFFER, 3 * allpos.size() * sizeof (float), points, GL_STATIC_DRAW);
+    
 	GLuint vao;
 	glGenVertexArrays (1, &vao);
 	glBindVertexArray (vao);
 	
-	glBindBuffer (GL_ARRAY_BUFFER, points_vbo);
+	glBindBuffer (GL_ARRAY_BUFFER, points_vbo);//do we need this second bind buffer ? always forget if its not bound already
 	glVertexAttribPointer (0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
-	glBindBuffer (GL_ARRAY_BUFFER, normals_vbo);
-	glVertexAttribPointer (1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-
-
 	glEnableVertexAttribArray (0);
-	glEnableVertexAttribArray (1);
 
+    
     //need to move this shader creation to the shader class
     //not the shader class on this project, the one from the ray tracing project
-    
     
 /*------------------------------create shaders--------------------------------*/
 	char vertex_shader[1024 * 256];
 	char fragment_shader[1024 * 256];
-	assert (parse_file_into_str ("test_vs.glsl", vertex_shader, 1024 * 256));
-	assert (parse_file_into_str ("test_fs.glsl", fragment_shader, 1024 * 256));
+	assert (parse_file_into_str ("vert.glsl", vertex_shader, 1024 * 256));
+	assert (parse_file_into_str ("frag.glsl", fragment_shader, 1024 * 256));
 	
 	GLuint vs = glCreateShader (GL_VERTEX_SHADER);
 	const GLchar* p = (const GLchar*)vertex_shader;
@@ -377,64 +242,16 @@ int main () {
 		return false;
 	}
 	
-/*------------------------------create cube shaders--------------------------------*/
-    char cube_vertex_shader[1024 * 256];
-    char cube_fragment_shader[1024 * 256];
-    assert (parse_file_into_str ("cube_vs.glsl", cube_vertex_shader, 1024 * 256));
-    assert (parse_file_into_str ("cube_fs.glsl", cube_fragment_shader, 1024 * 256));
     
-    GLuint cube_vs = glCreateShader (GL_VERTEX_SHADER);
-    p = (const GLchar*)cube_vertex_shader;
-    glShaderSource (cube_vs, 1, &p, NULL);
-    glCompileShader (cube_vs);
-    
-    // check for compile errors
-    params = -1;
-    glGetShaderiv (vs, GL_COMPILE_STATUS, &params);
-    if (GL_TRUE != params) {
-        fprintf (stderr, "ERROR: GL shader index %i did not compile\n", cube_vs);
-        print_shader_info_log (cube_vs);
-        return 1; // or exit or something
-    }
-    
-    GLuint cube_fs = glCreateShader (GL_FRAGMENT_SHADER);
-    p = (const GLchar*)cube_fragment_shader;
-    glShaderSource (cube_fs, 1, &p, NULL);
-    glCompileShader (cube_fs);
-    
-    // check for compile errors
-    glGetShaderiv (cube_fs, GL_COMPILE_STATUS, &params);
-    if (GL_TRUE != params) {
-        fprintf (stderr, "ERROR: GL shader index %i did not compile\n", cube_fs);
-        print_shader_info_log (cube_fs);
-        return 1; // or exit or something
-    }
-    
-    
-    GLuint cube_shader_programme = glCreateProgram ();
-    glAttachShader (cube_shader_programme, cube_fs);
-    glAttachShader (cube_shader_programme, cube_vs);
-    glLinkProgram (cube_shader_programme);
-    
-    glGetProgramiv (cube_shader_programme, GL_LINK_STATUS, &params);
-    if (GL_TRUE != params) {
-        fprintf (
-                 stderr,
-                 "ERROR: could not link shader programme GL index %i\n",
-                 cube_shader_programme
-                 );
-        print_programme_info_log (cube_shader_programme);
-        return false;
-    }
-    
-    CreateCubeMap();
-    create_cube_map("front.tga", "back.tga", "top.tga", "bottom.tga", "left.tga", "right.tga", &tex_cube);
-/*--------------------------create camera matrices----------------------------*/
+
+
+    //need to figure out exactly what is being used here
+    /*--------------------------create camera matrices----------------------------*/
 	/* create PROJECTION MATRIX */
 	#define ONE_DEG_IN_RAD (2.0 * M_PI) / 360.0 // 0.017444444
 	// input variables
 	float near = 0.1f; // clipping plane
-	float far = 100.0f; // clipping plane
+	float far = 1000.0f; // clipping plane
 	float fov = 67.0f * ONE_DEG_IN_RAD; // convert 67 degrees to radians
 	float aspect = (float)g_gl_width / (float)g_gl_height; // aspect ratio
 	// matrix components
@@ -451,7 +268,7 @@ int main () {
 	};
 	
 	/* create VIEW MATRIX */
-	float cam_speed = 1.0f; // 1 unit per second
+	float cam_speed = 10.0f; // 1 unit per second
 	float cam_yaw_speed = 10.0f; // 10 degrees per second
 	float cam_pos[] = {0.0f, 2.0f, 0.0f}; // don't start at zero, or we will be too close
 	float cam_yaw = 0.0f; // y-rotation in degrees
@@ -462,7 +279,7 @@ int main () {
 
     
     //am I even using this?
-    glm::mat4 perspectiveMatrix = glm::perspective(glm::radians(45.0f), (float)g_gl_width / g_gl_height, 0.1f, 100.0f);
+    glm::mat4 perspectiveMatrix = glm::perspective(glm::radians(45.0f), (float)g_gl_width / g_gl_height, 0.1f, 1000.0f);
     
 	glm::mat4 T = glm::translate(glm::mat4(1.0f), glm::vec3(-cam_pos[0], -cam_pos[1], -cam_pos[2]));
 	glm::mat4 R = glm::rotate(glm::mat4(1.0f),-cam_yaw,glm::vec3(0.0f,1.0f,0.0f));	
@@ -476,28 +293,24 @@ int main () {
 	mat4 view_mat = R * T;*/
 	//GLfloat height = 0.0;
 	/* get location numbers of matrices in shader programme */
+    
 	GLint view_mat_location = glGetUniformLocation (shader_programme, "view_mat");
 	GLint proj_mat_location = glGetUniformLocation (shader_programme, "projection_mat");
 	GLint model_mat_location = glGetUniformLocation(shader_programme, "model_mat");
 	GLint time_location = glGetUniformLocation(shader_programme, "time");
 
-	GLint amplitude_location = glGetUniformLocation(shader_programme, "amplitude");
-	GLint wavelenght_location = glGetUniformLocation(shader_programme, "wavelength");
-	GLint speed_location = glGetUniformLocation(shader_programme, "speed");
-	GLint directionX_location = glGetUniformLocation(shader_programme, "directionX");
-	GLint directionY_location = glGetUniformLocation(shader_programme, "directionY");
-    GLint steepness_location = glGetUniformLocation(shader_programme, "steepness");
-    GLint phase_location = glGetUniformLocation(shader_programme, "phase");
+    //view and proj matrix shold probably be in camera class?
+    //model matrix should probably be identity on this project I thinK? for now at least
     
+    //didnt remove just so I wont forget syntax
+//    GLint amplitude_location = glGetUniformLocation(shader_programme, "amplitude");
+//    GLint wavelenght_location = glGetUniformLocation(shader_programme, "wavelength");
+//    GLint speed_location = glGetUniformLocation(shader_programme, "speed");
+//    GLint directionX_location = glGetUniformLocation(shader_programme, "directionX");
+//    GLint directionY_location = glGetUniformLocation(shader_programme, "directionY");
+//    GLint steepness_location = glGetUniformLocation(shader_programme, "steepness");
+//    GLint phase_location = glGetUniformLocation(shader_programme, "phase");
     
-    GLint cube_view_mat_location = glGetUniformLocation(cube_shader_programme, "V");
-    GLint cube_proj_mat_location = glGetUniformLocation(cube_shader_programme, "P");
-	//GLint height_location = glGetUniformLocation(shader_programme, "height");
-	//GLint normal_mat_location = glGetUniformLocation(shader_programme, "normal");
-	//GLint light_location = glGetUniformLocation(shader_programme, "LightPosition");
-    glUseProgram (cube_shader_programme);
-    glUniformMatrix4fv (cube_view_mat_location, 1, GL_FALSE, glm::value_ptr(view_mat));
-    glUniformMatrix4fv (cube_proj_mat_location, 1, GL_FALSE, proj_mat);
     
 	/* use program (make current in state machine) and set default matrix values*/
 	glUseProgram (shader_programme);
@@ -509,16 +322,17 @@ int main () {
 	GLfloat time = 0.0f;
 	glUniform1f(time_location,time);
 	
-	glUniform1fv(amplitude_location, 5, amplitude);
-	glUniform1fv(wavelenght_location, 5, wavelenght);
-	glUniform1fv(speed_location, 5, speed);
-	//glUniform2fv(direction_location, 5, glm::value_ptr(direction));
-	
-	glUniform1fv(directionX_location, 5, directionX);
-	glUniform1fv(directionY_location, 5, directionY);
-    
-    glUniform1fv(steepness_location, 5, steepness);
-    glUniform1fv(phase_location, 5, phase);
+	//didnt remove just so I wont forget syntax
+//    glUniform1fv(amplitude_location, 5, amplitude);
+//    glUniform1fv(wavelenght_location, 5, wavelenght);
+//    glUniform1fv(speed_location, 5, speed);
+//    //glUniform2fv(direction_location, 5, glm::value_ptr(direction));
+//
+//    glUniform1fv(directionX_location, 5, directionX);
+//    glUniform1fv(directionY_location, 5, directionY);
+//
+//    glUniform1fv(steepness_location, 5, steepness);
+//    glUniform1fv(phase_location, 5, phase);
     
 	//glUniformMatrix3fv(normal_mat_location, 1, GL_FALSE, glm::value_ptr(normal));
 	//glUniform3fv(light_location, 3, lightPosition);
@@ -537,7 +351,7 @@ int main () {
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         glDepthMask(GL_FALSE);
-        glUseProgram(cube_shader_programme);
+        //glUseProgram(cube_shader_programme);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, tex_cube);
         glBindVertexArray(cube_vao);
@@ -559,8 +373,9 @@ int main () {
 		//glClearColor(0.5, 0.5, 0.5, 1.0);
 		glUseProgram (shader_programme);
 		glBindVertexArray (vao);
-
-		glDrawArrays (GL_TRIANGLES, 0, pointCount);
+        
+        glPointSize(5);
+		glDrawArrays (GL_LINE_STRIP, 0, allpos.size());
 
         if(!pausedTime)
             time += 0.1;
@@ -571,6 +386,8 @@ int main () {
 		// update other events like input handling 
 		glfwPollEvents ();
 		
+        //all of this movement code comes from the old old old "Camera Virtual + GLM e Model Matrix" camera project I think?
+        //thats probably why there is a camera movement part and a model movement part I think. need to clean thisss
 /*-----------------------------move camera here-------------------------------*/
 		// control keys
 		bool cam_moved = false;
@@ -620,19 +437,19 @@ int main () {
 		
 		bool model_moved = false;
 		if (glfwGetKey(g_window, GLFW_KEY_H)){
-			model_x -= 0.01f;
+			model_x -= 0.1f;
 			model_moved = true;			
 		}
 		if (glfwGetKey(g_window, GLFW_KEY_K)){
-			model_x += 0.01f;
+			model_x += 0.1f;
 			model_moved = true;
 		}
 		if (glfwGetKey(g_window, GLFW_KEY_J)){
-			model_y -= 0.01f;
+			model_y -= 0.1f;
 			model_moved = true;
 		}
 		if (glfwGetKey(g_window, GLFW_KEY_U)){
-			model_y += 0.01f;
+			model_y += 0.1f;
 			model_moved = true;
 		}
 
