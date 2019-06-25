@@ -2,4 +2,5 @@
 *.log
 *.xcodeproj/
 TrajVis.xcodeproj/
+TrajVis.xcodeproj/project.pbxproj
 TrajVis/trajectories/
