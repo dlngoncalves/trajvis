@@ -1,6 +1,12 @@
 *.csv
 *.log
 *.xcodeproj/
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*vcxproj.user
 TrajVis.xcodeproj/
 TrajVis.xcodeproj/project.pbxproj
 TrajVis/trajectories/
+TrajVis/TrajVis/
+TrajVis/.vs/
