@@ -18,6 +18,7 @@
 //#include "objLoader.h"
 #include "Camera.h"
 #include "TrajParser.h"
+#include "Weather.h"
 #include <random>
 #include "time.h"
 #include <iostream>
@@ -25,6 +26,7 @@
 #include "stb_image.h"
 
 #include <string>
+#include <curl/curl.h>
 
 #define GL_LOG_FILE "gl.log"
 #define NUM_WAVES 5
@@ -60,8 +62,23 @@ struct shader_traj_point
     float lat;
     float lon;
     float ele;
+    float temp;
 };
 
+
+//HOW I CAN SEE THIS WHOLE THING COMING TOGETHER AS A COESIVE MODEL
+//LOAD EACH TRAJECTORY FROM FILE (CSV, GPX, ETC)
+//LOAD TRAJ DATA INTO TRAJ STRUCT
+//LOOK UP AUX DATA - IE WEATHER INFO
+//ADD IT TO TRAJ STRUCTURE ON A POINT OR WHOLE TRAJ BASE
+//THE STRUCT CONTAINS THE SHADER
+//ON RENDERING, ONE TRAJECTORY EQUALS ONE DRAW CALL
+//NOT VERY EFFICIENT
+//BUT MORE FLEXIBLE THAN ONE HUGE BUFFER
+//SCREEN SPACE DEFERRED STUFF MIGHT BE BETTER FOR OPTIMIZATION
+//ALSO NEED TO FIGURE OUT MAP RENDERING/MATCHING
+
+//this could make sense - 
 //might use a framebuffer? maybe we  only render the trajectories in screen space? might try some different things
 void CreateFrameBuffer()
 {
@@ -75,6 +92,15 @@ void CreateFrameBuffer()
     
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+    
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, frameBufferTexture, 0);
+    
+    //with this we are generating one texture from the framebuffer data - add more textures as needed, as seen in the defered shading stuff
+
+    //is this part needed ? the renderbuffer - from what I can recall - is needed for depth operations - might be needed
+    //glGenRenderbuffers(...)
 }
 
 
@@ -112,6 +138,12 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     camera.cameraFront = glm::normalize(front);
 }
 
+static size_t WriteCallBack(void *contents, size_t size, size_t nmemb, void *userp)
+{
+    ((std::string*)userp)->append((char*)contents,size*nmemb);
+    return size*nmemb;
+};
+
 int main () {
 	assert (restart_gl_log ());
 /*------------------------------start GL context------------------------------*/
@@ -141,13 +173,29 @@ int main () {
     
     TrajParser::basePosition = glm::vec3(0,0,0);
     
+    //Have to change things to also be able to load the geolife trajectory type
+    //yeah I need to change it
+    
+    //would make sense for each trajectory to be connected to a shader
+    //should I have a shader object pointer/reference in the trajectory?
+    //for now will just iterate over the list
     TrajParser trajetory("trajectories/walk_11.csv");
     TrajParser trajetory2("trajectories/walk_16.csv");
     TrajParser trajetory3("trajectories/walk_17.csv");
     TrajParser trajetory4("trajectories/walk_20.csv");
     
+    std::vector<TrajParser> TrajList;
+    TrajList.push_back(trajetory);
+    TrajList.push_back(trajetory2);
+    TrajList.push_back(trajetory3);
+    TrajList.push_back(trajetory4);
+    //should add a list for this
+    
+    //getting weather for first traj point
+    //trajetory.segList[0].segWeather = Weather::getWeather(&trajetory.segList[0]);
     
     //testing one big array
+    //this is fucked
     std::vector<glm::vec3> allpos;
     allpos.insert(allpos.begin(),trajetory.positions.begin(),trajetory.positions.end());
     allpos.insert(allpos.end(),trajetory2.positions.begin(),trajetory2.positions.end());
@@ -169,9 +217,45 @@ int main () {
     //gonna need some buffers for trajdata, i guess - one buffer per trajectory or one buffer for all the data?
     //also if using one giant buffer maybe use a ssbo instead -
     
+    //dark sky api key bef82cf6478375092ee305cb44b45a1e
+    //https://api.darksky.net/forecast/bef82cf6478375092ee305cb44b45a1e/37.8267,-122.4233
+    //this dark sky processing needs to go into its own class
+//    std::string responseBuffer;
+//    CURL *handle = curl_easy_init();
+//    if(handle){
+//        CURLcode res;
+//        curl_easy_setopt(handle, CURLOPT_URL,"http://www.example.com");
+//        curl_easy_setopt(handle,CURLOPT_WRITEFUNCTION,WriteCallBack);
+//        curl_easy_setopt(handle,CURLOPT_WRITEDATA,&responseBuffer);
+//        res = curl_easy_perform(handle);
+//    }
+    
+    //two ways of doing things - we can pass as vbo or as uniform
+
     
     
-	GLuint points_vbo;
+    std::vector<glm::vec3> weatherData;
+//    glm::vec3 curPoint = glm::vec3(1.0,0.0,0.0);
+//
+//    curPoint = Weather::getWeatherColor(trajetory.segList[0].segWeather.temperature);
+    
+    for(auto &curTraj : TrajList){
+        glm::vec3 curPoint = glm::vec3(1.0,0.0,0.0);
+        
+        curTraj.segList[0].segWeather = Weather::getWeather(&curTraj.segList[0]);
+        curPoint = Weather::getWeatherColor(curTraj.segList[0].segWeather.temperature);
+        
+        for(int i = 0; i < curTraj.segList.size(); i++){
+            weatherData.push_back(curPoint);
+        }
+    }
+    
+    //float * weatherPoints = static_cast<float *>(glm::value_ptr(allpos.front()));
+    float * weatherPoints = static_cast<float *>(glm::value_ptr(weatherData.front()));
+    
+    //geeometry buffer
+    GLuint points_vbo;
+    
 	glGenBuffers (1, &points_vbo);
 	glBindBuffer (GL_ARRAY_BUFFER, points_vbo);
 	//glBufferData (GL_ARRAY_BUFFER, 3 * pointCount * sizeof (GLfloat), points, GL_STATIC_DRAW);
@@ -179,6 +263,19 @@ int main () {
     
     glBufferData (GL_ARRAY_BUFFER, 3 * allpos.size() * sizeof (float), points, GL_STATIC_DRAW);
     
+    //weather data buffer;
+    //was going to do this here like the normal type buffer but doesnt makes a lot of sense - you have to repeat the data per vertex
+    //difference between geometry buffer and this is we only passing one float per vertice vs 3 for position
+    //yeah that is impossible
+    //actually we can pass it like this but it makes more sense to pass it as a uniform
+    GLuint weather_vbo;
+    //first parameter tells how many buffers
+    glGenBuffers(1, &weather_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, weather_vbo);
+    glBufferData(GL_ARRAY_BUFFER, 3* allpos.size() * sizeof(float), weatherPoints, GL_STATIC_DRAW);
+    
+    
+    //adding weather buff
 	GLuint vao;
 	glGenVertexArrays (1, &vao);
 	glBindVertexArray (vao);
@@ -186,7 +283,13 @@ int main () {
 	glBindBuffer (GL_ARRAY_BUFFER, points_vbo);//do we need this second bind buffer ? always forget if its not bound already
 	glVertexAttribPointer (0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
-	glEnableVertexAttribArray (0);
+
+
+    glBindBuffer (GL_ARRAY_BUFFER, weather_vbo);//do we need this second bind buffer ? always forget if its not bound already
+    glVertexAttribPointer (1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+    glEnableVertexAttribArray (0);
+    glEnableVertexAttribArray (1);
 
     
     //need to move this shader creation to the shader class
@@ -349,7 +452,7 @@ int main () {
 	while (!glfwWindowShouldClose (g_window)) {
 		
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glDepthMask(GL_FALSE);
         //glUseProgram(cube_shader_programme);
         glActiveTexture(GL_TEXTURE0);

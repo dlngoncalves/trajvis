@@ -7,3 +7,23 @@
 //
 
 #include "Renderer.h"
+
+Renderer * Renderer::_instance = nullptr;
+
+Renderer* Renderer::instance()
+{
+    if(_instance == NULL){
+        _instance = new Renderer;
+    }
+    return _instance;
+}
+
+Renderer::Renderer()
+{
+    
+}
+
+Renderer::~Renderer()
+{
+    
+}

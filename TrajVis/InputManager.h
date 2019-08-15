@@ -11,4 +11,12 @@
 
 #include <stdio.h>
 
+//should input be a singleton?
+class InputController {
+    
+    
+    public:
+        InputController();
+        ~InputController();
+};
 #endif /* InputManager_h */

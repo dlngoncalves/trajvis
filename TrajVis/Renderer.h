@@ -13,9 +13,13 @@
 
 class Renderer {
 
-    
-public:
+private:
+    static Renderer * _instance;
     Renderer();
+public:
+    
+    static Renderer* instance();
+    
     ~Renderer();
 };
 

@@ -2,6 +2,7 @@
 
 //just a very basic shader for this
 in vec3 position_eye;
+in vec3 vertColorTemp;
 
 layout (std140) uniform shader_traj_point
 {
@@ -23,6 +24,6 @@ out vec4 fragment_colour; // final colour of surface
 
 void main () {
 	
-    fragment_colour = vec4(1.0,0.0,0.0,1.0);
-    
+    //fragment_colour = vec4(1.0,1.0,0.0,1.0);
+    fragment_colour = vec4(vertColorTemp,1.0);
 }
