@@ -15,7 +15,10 @@
 #include <vector>
 #include <math.h>
 #include <glm/glm.hpp>
+#include "Trajectory.h"
 #include "Weather.h"
+#include "GLSLShader.h"
+
 //moved weather stuff out of here and into its own class
 
 
@@ -50,12 +53,15 @@ private:
     
 public:
     //TrajParser();
-    TrajParser(std::string file);
+    TrajParser(std::string file,GLSLShader &shader);
     //~TrajParser();
     
     static glm::vec3 basePosition;
+    
+    //regarding those two vectors - first stores positions already converted to xyz and second stores lat-lon info
     std::vector<glm::vec3> positions; //moving this here for easier access
     std::vector<TrajSeg> segList; //also moving this here for easier access but need to implement something better
+    
     void loadTrajectory();//or constructor?
     
     //WeatherData loadWeather(const TrajSeg &segment);
@@ -64,6 +70,14 @@ public:
     //std::istream & operator >> (std::istream &in, TrajParser &traj);
     //std::istream & operator >> ( std::istream &in);
     //friend std::stringstream &operator >> (std::stringstream &in, TrajSeg &seg);
+    
+    //Im a going to do a dumb thing and just put everything here instead of moving things to the Trajectory class
+    
+    GLSLShader &myShader;
+    GLuint vertexBufferObject;
+    GLuint vertexArrayObject;
+    
+    void SetupData();
 };
 
 

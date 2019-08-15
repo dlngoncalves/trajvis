@@ -24,7 +24,7 @@
 #include <iostream>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-
+#include "GLSLShader.h"
 #include <string>
 #include <curl/curl.h>
 
@@ -167,6 +167,17 @@ int main () {
     camera.pitch = 0.0;
     camera.yaw = 0.0;
     
+    //for now using the first pass shader as the trajectory rendering one
+    
+    GLSLShader firstPassShader;
+//    firstPassShader.LoadFromFile(GL_VERTEX_SHADER, "vert.glsl");
+//    firstPassShader.LoadFromFile(GL_FRAGMENT_SHADER, "frag.glsl");
+//    firstPassShader.CreateAndLinkProgram();
+//    firstPassShader.Use();
+//    firstPassShader.AddUniform("view_mat");
+//    firstPassShader.AddUniform("projection_mat");
+//    firstPassShader.AddUniform("model_mat");
+    
     glfwSetCursorPosCallback(g_window, mouse_callback);
     
     //need to change here to get all trajectory files on dir -- but will have to figure something to get files on demand
@@ -179,10 +190,10 @@ int main () {
     //would make sense for each trajectory to be connected to a shader
     //should I have a shader object pointer/reference in the trajectory?
     //for now will just iterate over the list
-    TrajParser trajetory("trajectories/walk_11.csv");
-    TrajParser trajetory2("trajectories/walk_16.csv");
-    TrajParser trajetory3("trajectories/walk_17.csv");
-    TrajParser trajetory4("trajectories/walk_20.csv");
+    TrajParser trajetory("trajectories/walk_11.csv",firstPassShader);
+    TrajParser trajetory2("trajectories/walk_16.csv",firstPassShader);
+    TrajParser trajetory3("trajectories/walk_17.csv",firstPassShader);
+    TrajParser trajetory4("trajectories/walk_20.csv",firstPassShader);
     
     std::vector<TrajParser> TrajList;
     TrajList.push_back(trajetory);
@@ -455,6 +466,7 @@ int main () {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glDepthMask(GL_FALSE);
         //glUseProgram(cube_shader_programme);
+        
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, tex_cube);
         glBindVertexArray(cube_vao);
@@ -478,8 +490,8 @@ int main () {
 		glBindVertexArray (vao);
         
         glPointSize(5);
-		glDrawArrays (GL_LINE_STRIP, 0, allpos.size());
-
+        glDrawArrays (GL_LINE_STRIP, 0, allpos.size());
+        
         if(!pausedTime)
             time += 0.1;
         

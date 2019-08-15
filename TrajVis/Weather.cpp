@@ -10,7 +10,7 @@
 #include <string>
 #include "Weather.h"
 #include "TrajParser.h"
-#include <algorithm>
+#include <algorithm> 
 
 //dark sky api key bef82cf6478375092ee305cb44b45a1e
 //https://api.darksky.net/forecast/bef82cf6478375092ee305cb44b45a1e/37.8267,-122.4233
@@ -61,16 +61,13 @@ glm::vec3 Weather::getWeatherColor(float temperature)
     glm::vec3 tempColor = glm::vec3(0,0,0);
     
     //this assumes celcius for now
-    //also gonna change things here later
-    //gonna make things based on an interval -pre defined or user customizable?
     
     //adapted from https://stackoverflow.com/questions/20792445/calculate-rgb-value-for-a-range-of-values-to-create-heat-map
-    //for now the range will be 0 to 30 - if outside just clamp
+    //for now the range will be 20 to 25 - if outside just clamp
     
     float minimum = 20.0f;
     float maximum = 25.0f;
     float ratio = 2 * (temperature-minimum) / (maximum - minimum);
-
     float b = 255*(1 - ratio);
     float r = 255*(ratio - 1);
     b = (b > 0) ? b : 0;
@@ -81,38 +78,7 @@ glm::vec3 Weather::getWeatherColor(float temperature)
     g = g / 255;
     b = b / 255;
     tempColor = glm::vec3(r,g,b);
-    //should create a class color I guess
     
-//    if(temperature < 0){
-//        tempColor = glm::vec3(0,0,1.0);
-//    }
-//    else if(temperature < 10){
-//        tempColor = glm::vec3(0,0.2,0.8);
-//    }
-//    else if(temperature < 15){
-//        tempColor = glm::vec3(0,0.6,0.4);
-//    }
-//    else if(temperature < 20){
-//        tempColor = glm::vec3(0,1.0,0.0);
-//    }
-//    else if(temperature < 22){
-//        tempColor = glm::vec3(0.2,0.8,0.0);
-//    }
-//    else if(temperature < 25){
-//        tempColor = glm::vec3(0.4,0.6,0.0);
-//    }
-//    else if(temperature < 30){
-//        tempColor = glm::vec3(0.8,0.2,0.0);
-//    }
-//    else{
-//        tempColor = glm::vec3(1.0,0,0.0);
-//    }
     
     return tempColor;
 }
-
-float interpolate(float a, float b, float t)
-{
-    return a * (1 - t) + b * t;
-}
-//need to create a weather processing thing for the whole trajectory
