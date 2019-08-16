@@ -170,13 +170,13 @@ int main () {
     //for now using the first pass shader as the trajectory rendering one
     
     GLSLShader firstPassShader;
-//    firstPassShader.LoadFromFile(GL_VERTEX_SHADER, "vert.glsl");
-//    firstPassShader.LoadFromFile(GL_FRAGMENT_SHADER, "frag.glsl");
-//    firstPassShader.CreateAndLinkProgram();
-//    firstPassShader.Use();
-//    firstPassShader.AddUniform("view_mat");
-//    firstPassShader.AddUniform("projection_mat");
-//    firstPassShader.AddUniform("model_mat");
+    firstPassShader.LoadFromFile(GL_VERTEX_SHADER, "vert.glsl");
+    firstPassShader.LoadFromFile(GL_FRAGMENT_SHADER, "frag.glsl");
+    firstPassShader.CreateAndLinkProgram();
+    firstPassShader.Use();
+    firstPassShader.AddUniform("view_mat");
+    firstPassShader.AddUniform("projection_mat");
+    firstPassShader.AddUniform("model_mat");
     
     glfwSetCursorPosCallback(g_window, mouse_callback);
     
@@ -200,167 +200,8 @@ int main () {
     TrajList.push_back(trajetory2);
     TrajList.push_back(trajetory3);
     TrajList.push_back(trajetory4);
-    //should add a list for this
-    
-    //getting weather for first traj point
-    //trajetory.segList[0].segWeather = Weather::getWeather(&trajetory.segList[0]);
-    
-    //testing one big array
-    //this is fucked
-    std::vector<glm::vec3> allpos;
-    allpos.insert(allpos.begin(),trajetory.positions.begin(),trajetory.positions.end());
-    allpos.insert(allpos.end(),trajetory2.positions.begin(),trajetory2.positions.end());
-    allpos.insert(allpos.end(),trajetory3.positions.begin(),trajetory3.positions.end());
-    allpos.insert(allpos.end(),trajetory4.positions.begin(),trajetory4.positions.end());
-    //using this for trajPoints
-    
-    //float* points = static_cast<float*>(glm::value_ptr(trajetory.positions.front()));
-    float* points = static_cast<float*>(glm::value_ptr(allpos.front()));
-    
-//    float* points2 = static_cast<float*>(glm::value_ptr(trajetory2.positions.front()));
-//    float* points3 = static_cast<float*>(glm::value_ptr(trajetory3.positions.front()));
-//    float* points4 = static_cast<float*>(glm::value_ptr(trajetory4.positions.front()));
-    
-    int pointCount;//probably wont need this
-    
-    //removing all the stuff from the old project related to the waves
-
-    //gonna need some buffers for trajdata, i guess - one buffer per trajectory or one buffer for all the data?
-    //also if using one giant buffer maybe use a ssbo instead -
-    
-    //dark sky api key bef82cf6478375092ee305cb44b45a1e
-    //https://api.darksky.net/forecast/bef82cf6478375092ee305cb44b45a1e/37.8267,-122.4233
-    //this dark sky processing needs to go into its own class
-//    std::string responseBuffer;
-//    CURL *handle = curl_easy_init();
-//    if(handle){
-//        CURLcode res;
-//        curl_easy_setopt(handle, CURLOPT_URL,"http://www.example.com");
-//        curl_easy_setopt(handle,CURLOPT_WRITEFUNCTION,WriteCallBack);
-//        curl_easy_setopt(handle,CURLOPT_WRITEDATA,&responseBuffer);
-//        res = curl_easy_perform(handle);
-//    }
-    
-    //two ways of doing things - we can pass as vbo or as uniform
-
-    
-    
-    std::vector<glm::vec3> weatherData;
-//    glm::vec3 curPoint = glm::vec3(1.0,0.0,0.0);
-//
-//    curPoint = Weather::getWeatherColor(trajetory.segList[0].segWeather.temperature);
-    
-    //need to move this to trajectory class
-    for(auto &curTraj : TrajList){
-        glm::vec3 curPoint = glm::vec3(1.0,0.0,0.0);
-        
-        curTraj.segList[0].segWeather = Weather::getWeather(&curTraj.segList[0]);
-        curPoint = Weather::getWeatherColor(curTraj.segList[0].segWeather.temperature);
-        
-        for(int i = 0; i < curTraj.segList.size(); i++){
-            weatherData.push_back(curPoint);
-        }
-    }
-    
-    //float * weatherPoints = static_cast<float *>(glm::value_ptr(allpos.front()));
-    float * weatherPoints = static_cast<float *>(glm::value_ptr(weatherData.front()));
-    
-    //geeometry buffer
-    GLuint points_vbo;
-    
-	glGenBuffers (1, &points_vbo);
-	glBindBuffer (GL_ARRAY_BUFFER, points_vbo);
-	//glBufferData (GL_ARRAY_BUFFER, 3 * pointCount * sizeof (GLfloat), points, GL_STATIC_DRAW);
-	//glBufferData (GL_ARRAY_BUFFER, 3 * trajetory.positions.size() * sizeof (float), points, GL_STATIC_DRAW);
-    
-    glBufferData (GL_ARRAY_BUFFER, 3 * allpos.size() * sizeof (float), allpos.data(), GL_STATIC_DRAW);
-    
-    //weather data buffer;
-    //was going to do this here like the normal type buffer but doesnt makes a lot of sense - you have to repeat the data per vertex
-    //difference between geometry buffer and this is we only passing one float per vertice vs 3 for position
-    //yeah that is impossible
-    //actually we can pass it like this but it makes more sense to pass it as a uniform
-    GLuint weather_vbo;
-    //first parameter tells how many buffers
-    glGenBuffers(1, &weather_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, weather_vbo);
-    glBufferData(GL_ARRAY_BUFFER, 3* allpos.size() * sizeof(float), weatherPoints, GL_STATIC_DRAW);
-    
-    
-    //adding weather buff
-	GLuint vao;
-	glGenVertexArrays (1, &vao);
-	glBindVertexArray (vao);
-	
-	glBindBuffer (GL_ARRAY_BUFFER, points_vbo);//do we need this second bind buffer ? always forget if its not bound already
-	glVertexAttribPointer (0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
 
-
-    glBindBuffer (GL_ARRAY_BUFFER, weather_vbo);//do we need this second bind buffer ? always forget if its not bound already
-    glVertexAttribPointer (1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-
-    glEnableVertexAttribArray (0);
-    glEnableVertexAttribArray (1);
-
-    
-    //need to move this shader creation to the shader class
-    //not the shader class on this project, the one from the ray tracing project
-    
-/*------------------------------create shaders--------------------------------*/
-	char vertex_shader[1024 * 256];
-	char fragment_shader[1024 * 256];
-	assert (parse_file_into_str ("vert.glsl", vertex_shader, 1024 * 256));
-	assert (parse_file_into_str ("frag.glsl", fragment_shader, 1024 * 256));
-	
-	GLuint vs = glCreateShader (GL_VERTEX_SHADER);
-	const GLchar* p = (const GLchar*)vertex_shader;
-	glShaderSource (vs, 1, &p, NULL);
-	glCompileShader (vs);
-	
-	// check for compile errors
-	int params = -1;
-	glGetShaderiv (vs, GL_COMPILE_STATUS, &params);
-	if (GL_TRUE != params) {
-		fprintf (stderr, "ERROR: GL shader index %i did not compile\n", vs);
-		print_shader_info_log (vs);
-		return 1; // or exit or something
-	}
-	
-	GLuint fs = glCreateShader (GL_FRAGMENT_SHADER);
-	p = (const GLchar*)fragment_shader;
-	glShaderSource (fs, 1, &p, NULL);
-	glCompileShader (fs);
-	
-	// check for compile errors
-	glGetShaderiv (fs, GL_COMPILE_STATUS, &params);
-	if (GL_TRUE != params) {
-		fprintf (stderr, "ERROR: GL shader index %i did not compile\n", fs);
-		print_shader_info_log (fs);
-		return 1; // or exit or something
-	}
-	
-
-	GLuint shader_programme = glCreateProgram ();
-	glAttachShader (shader_programme, fs);
-	glAttachShader (shader_programme, vs);
-	glLinkProgram (shader_programme);
-	
-	glGetProgramiv (shader_programme, GL_LINK_STATUS, &params);
-	if (GL_TRUE != params) {
-		fprintf (
-			stderr,
-			"ERROR: could not link shader programme GL index %i\n",
-			shader_programme
-		);
-		print_programme_info_log (shader_programme);
-		return false;
-	}
-	
-    
-
-
-    //need to figure out exactly what is being used here
     /*--------------------------create camera matrices----------------------------*/
 	/* create PROJECTION MATRIX */
 	#define ONE_DEG_IN_RAD (2.0 * M_PI) / 360.0 // 0.017444444
@@ -409,11 +250,14 @@ int main () {
 	//GLfloat height = 0.0;
 	/* get location numbers of matrices in shader programme */
     
-	GLint view_mat_location = glGetUniformLocation (shader_programme, "view_mat");
-	GLint proj_mat_location = glGetUniformLocation (shader_programme, "projection_mat");
-	GLint model_mat_location = glGetUniformLocation(shader_programme, "model_mat");
-	GLint time_location = glGetUniformLocation(shader_programme, "time");
+//    GLint view_mat_location = glGetUniformLocation (shader_programme, "view_mat");
+//    GLint proj_mat_location = glGetUniformLocation (shader_programme, "projection_mat");
+//    GLint model_mat_location = glGetUniformLocation(shader_programme, "model_mat");
+//    GLint time_location = glGetUniformLocation(shader_programme, "time");
 
+    //think wwont need this when using the class
+    //GLint view_mat_location = firstPassShader
+    
     //view and proj matrix shold probably be in camera class?
     //model matrix should probably be identity on this project I thinK? for now at least
     
@@ -428,14 +272,14 @@ int main () {
     
     
 	/* use program (make current in state machine) and set default matrix values*/
-	glUseProgram (shader_programme);
-	glUniformMatrix4fv (view_mat_location, 1, GL_FALSE, glm::value_ptr(view_mat));
-	glUniformMatrix4fv (proj_mat_location, 1, GL_FALSE, proj_mat);
-	glUniformMatrix4fv(model_mat_location, 1, GL_FALSE, glm::value_ptr(model_mat));
-	glUniformMatrix4fv(model_mat_location, 1, GL_FALSE, glm::value_ptr(model_mat));
-	//glUniform1f(height_location, height);
-	GLfloat time = 0.0f;
-	glUniform1f(time_location,time);
+//    glUseProgram (shader_programme);
+//    glUniformMatrix4fv (view_mat_location, 1, GL_FALSE, glm::value_ptr(view_mat));
+//    glUniformMatrix4fv (proj_mat_location, 1, GL_FALSE, proj_mat);
+//    glUniformMatrix4fv(model_mat_location, 1, GL_FALSE, glm::value_ptr(model_mat));
+//    glUniformMatrix4fv(model_mat_location, 1, GL_FALSE, glm::value_ptr(model_mat));
+//    //glUniform1f(height_location, height);
+    GLfloat time = 0.0f;
+//    glUniform1f(time_location,time);
 	
 	//didnt remove just so I wont forget syntax
 //    glUniform1fv(amplitude_location, 5, amplitude);
@@ -460,6 +304,8 @@ int main () {
 	glFrontFace (GL_CCW); // GL_CCW for counter clock-wise
 	
     glViewport(0, 0, g_gl_width,  g_gl_height);
+    
+    glUniformMatrix4fv(firstPassShader("projection_mat"), 1, GL_FALSE, proj_mat);
     
 	while (!glfwWindowShouldClose (g_window)) {
 		
@@ -488,11 +334,13 @@ int main () {
 		//glViewport(0, 0, g_gl_width,  g_gl_height);
 		//glClearColor(0.5, 0.5, 0.5, 1.0);
 		
-        glUseProgram (shader_programme);
-		//glBindVertexArray (vao);
+        firstPassShader.Use();
+        //glUseProgram (firs);
+		glPointSize(5);
         
-        glPointSize(5);
-        //glDrawArrays (GL_LINE_STRIP, 0, allpos.size());
+//        glUniformMatrix4fv(firstPassShader("projection_mat"), 1, GL_FALSE, proj_mat);
+//        glUniformMatrix4fv(firstPassShader("view_mat"), 1, GL_FALSE, glm::value_ptr(view_mat));
+//        glUniformMatrix4fv(firstPassShader("model_mat"), 1, GL_FALSE, glm::value_ptr(model_mat));
         
         for(auto curTraj : TrajList){
             glBindVertexArray (curTraj.vertexArrayObject);
@@ -500,12 +348,11 @@ int main () {
         }
         
         
-        
         if(!pausedTime)
             time += 0.1;
-        
-        std::cout << time << "\n";
-		glUniform1f(time_location, time);
+//
+//        std::cout << time << "\n";
+//        glUniform1f(time_location, time);
 
 		// update other events like input handling 
 		glfwPollEvents ();
@@ -556,7 +403,8 @@ int main () {
 			glm::mat4 T = glm::translate(glm::mat4(1.0f), glm::vec3(-cam_pos[0], -cam_pos[1], -cam_pos[2]));
 			glm::mat4 R = glm::rotate(glm::mat4(1.0f), -cam_yaw, glm::vec3(0.0f, 1.0f, 0.0f));
 			glm::mat4 view_mat = R * T;
-			glUniformMatrix4fv (view_mat_location, 1, GL_FALSE, glm::value_ptr(view_mat));
+            glUniformMatrix4fv(firstPassShader("view_mat"), 1, GL_FALSE, glm::value_ptr(view_mat));
+			//glUniformMatrix4fv (view_mat_location, 1, GL_FALSE, glm::value_ptr(view_mat));
 		}
 		
 		bool model_moved = false;
@@ -590,7 +438,8 @@ int main () {
 			glm::mat4 T = glm::translate(glm::mat4(1.0f), glm::vec3(model_x, model_y, 0.0f));
 			glm::mat4 R = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 0.0f, 1.0f));
 			glm::mat4 model_matrix = T * R;
-			glUniformMatrix4fv(model_mat_location, 1, GL_FALSE, glm::value_ptr(model_matrix));
+            glUniformMatrix4fv(firstPassShader("model_mat"), 1, GL_FALSE, glm::value_ptr(model_matrix));
+			//glUniformMatrix4fv(model_mat_location, 1, GL_FALSE, glm::value_ptr(model_matrix));
 			
 		}
 
