@@ -202,99 +202,14 @@ int main () {
     TrajList.push_back(trajetory4);
 
 
-    /*--------------------------create camera matrices----------------------------*/
-	/* create PROJECTION MATRIX */
-	#define ONE_DEG_IN_RAD (2.0 * M_PI) / 360.0 // 0.017444444
-	// input variables
-	float near = 0.1f; // clipping plane
-	float far = 1000.0f; // clipping plane
-	float fov = 67.0f * ONE_DEG_IN_RAD; // convert 67 degrees to radians
-	float aspect = (float)g_gl_width / (float)g_gl_height; // aspect ratio
-	// matrix components
-	float range = tan (fov * 0.5f) * near;
-	float Sx = (2.0f * near) / (range * aspect + range * aspect);
-	float Sy = near / range;
-	float Sz = -(far + near) / (far - near);
-	float Pz = -(2.0f * far * near) / (far - near);
-	GLfloat proj_mat[] = {
-		Sx, 0.0f, 0.0f, 0.0f,
-		0.0f, Sy, 0.0f, 0.0f,
-		0.0f, 0.0f, Sz, -1.0f,
-		0.0f, 0.0f, Pz, 0.0f
-	};
-	
-	/* create VIEW MATRIX */
-	float cam_speed = 10.0f; // 1 unit per second
-	float cam_yaw_speed = 10.0f; // 10 degrees per second
-	float cam_pos[] = {0.0f, 2.0f, 0.0f}; // don't start at zero, or we will be too close
-	float cam_yaw = 0.0f; // y-rotation in degrees
-
-	float model_x = 0.0f;
-	float model_y = 0.0f;
-	float angle = 0.0f;
-
-    
-    //am I even using this?
     glm::mat4 perspectiveMatrix = glm::perspective(glm::radians(45.0f), (float)g_gl_width / g_gl_height, 0.1f, 1000.0f);
-    
-	glm::mat4 T = glm::translate(glm::mat4(1.0f), glm::vec3(-cam_pos[0], -cam_pos[1], -cam_pos[2]));
-	glm::mat4 R = glm::rotate(glm::mat4(1.0f),-cam_yaw,glm::vec3(0.0f,1.0f,0.0f));	
-	glm::mat4 view_mat = R * T;
-
 	glm::mat4 model_mat = glm::mat4(1.0f);
-	//glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
-	glm::mat3 normal = glm::transpose(glm::inverse(glm::mat3(view_mat * model_mat)));
-	/*mat4 T = translate (identity_mat4 (), vec3 (-cam_pos[0], -cam_pos[1], -cam_pos[2]));
-	mat4 R = rotate_y_deg (identity_mat4 (), -cam_yaw);
-	mat4 view_mat = R * T;*/
-	//GLfloat height = 0.0;
-	/* get location numbers of matrices in shader programme */
     
-//    GLint view_mat_location = glGetUniformLocation (shader_programme, "view_mat");
-//    GLint proj_mat_location = glGetUniformLocation (shader_programme, "projection_mat");
-//    GLint model_mat_location = glGetUniformLocation(shader_programme, "model_mat");
-//    GLint time_location = glGetUniformLocation(shader_programme, "time");
-
-    //think wwont need this when using the class
-    //GLint view_mat_location = firstPassShader
-    
-    //view and proj matrix shold probably be in camera class?
-    //model matrix should probably be identity on this project I thinK? for now at least
-    
-    //didnt remove just so I wont forget syntax
-//    GLint amplitude_location = glGetUniformLocation(shader_programme, "amplitude");
-//    GLint wavelenght_location = glGetUniformLocation(shader_programme, "wavelength");
-//    GLint speed_location = glGetUniformLocation(shader_programme, "speed");
-//    GLint directionX_location = glGetUniformLocation(shader_programme, "directionX");
-//    GLint directionY_location = glGetUniformLocation(shader_programme, "directionY");
-//    GLint steepness_location = glGetUniformLocation(shader_programme, "steepness");
-//    GLint phase_location = glGetUniformLocation(shader_programme, "phase");
-    
-    
-	/* use program (make current in state machine) and set default matrix values*/
-//    glUseProgram (shader_programme);
-//    glUniformMatrix4fv (view_mat_location, 1, GL_FALSE, glm::value_ptr(view_mat));
-//    glUniformMatrix4fv (proj_mat_location, 1, GL_FALSE, proj_mat);
-//    glUniformMatrix4fv(model_mat_location, 1, GL_FALSE, glm::value_ptr(model_mat));
-//    glUniformMatrix4fv(model_mat_location, 1, GL_FALSE, glm::value_ptr(model_mat));
-//    //glUniform1f(height_location, height);
-    GLfloat time = 0.0f;
-//    glUniform1f(time_location,time);
 	
-	//didnt remove just so I wont forget syntax
-//    glUniform1fv(amplitude_location, 5, amplitude);
-//    glUniform1fv(wavelenght_location, 5, wavelenght);
-//    glUniform1fv(speed_location, 5, speed);
-//    //glUniform2fv(direction_location, 5, glm::value_ptr(direction));
-//
-//    glUniform1fv(directionX_location, 5, directionX);
-//    glUniform1fv(directionY_location, 5, directionY);
-//
-//    glUniform1fv(steepness_location, 5, steepness);
-//    glUniform1fv(phase_location, 5, phase);
+    GLfloat time = 0.0f;
+    GLfloat deltaTime = 0.0f;
+    GLfloat lastFrame = 0.0f;
     
-	//glUniformMatrix3fv(normal_mat_location, 1, GL_FALSE, glm::value_ptr(normal));
-	//glUniform3fv(light_location, 3, lightPosition);
 /*------------------------------rendering loop--------------------------------*/
 	/* some rendering defaults */
 	glEnable(GL_DEPTH_TEST); // enable depth-testing
@@ -305,7 +220,7 @@ int main () {
 	
     glViewport(0, 0, g_gl_width,  g_gl_height);
     
-    glUniformMatrix4fv(firstPassShader("projection_mat"), 1, GL_FALSE, proj_mat);
+    glUniformMatrix4fv(firstPassShader("projection_mat"), 1, GL_FALSE, glm::value_ptr(perspectiveMatrix));
     
 	while (!glfwWindowShouldClose (g_window)) {
 		
@@ -325,6 +240,16 @@ int main () {
 		double elapsed_seconds = current_seconds - previous_seconds;
 		previous_seconds = current_seconds;
 		
+        GLfloat currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        camera.cameraSpeed = 5.0f * deltaTime;
+        
+        time += 0.001; //just to move the camera around
+        if (time >= 360)
+            time = 0;
+        
         glm::mat4 viewMatrix = glm::lookAt(camera.cameraPosition, camera.cameraPosition + camera.cameraFront, camera.cameraUp);
         
 		_update_fps_counter (g_window);
@@ -339,8 +264,8 @@ int main () {
 		glPointSize(5);
         
 //        glUniformMatrix4fv(firstPassShader("projection_mat"), 1, GL_FALSE, proj_mat);
-//        glUniformMatrix4fv(firstPassShader("view_mat"), 1, GL_FALSE, glm::value_ptr(view_mat));
-//        glUniformMatrix4fv(firstPassShader("model_mat"), 1, GL_FALSE, glm::value_ptr(model_mat));
+        glUniformMatrix4fv(firstPassShader("view_mat"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
+        glUniformMatrix4fv(firstPassShader("model_mat"), 1, GL_FALSE, glm::value_ptr(model_mat));
         
         for(auto curTraj : TrajList){
             glBindVertexArray (curTraj.vertexArrayObject);
@@ -361,91 +286,30 @@ int main () {
         //thats probably why there is a camera movement part and a model movement part I think. need to clean thisss
 /*-----------------------------move camera here-------------------------------*/
 		// control keys
-		bool cam_moved = false;
-		if (glfwGetKey (g_window, GLFW_KEY_A)) {
-			cam_pos[0] -= cam_speed * elapsed_seconds;
-			cam_moved = true;
-		}
-		if (glfwGetKey (g_window, GLFW_KEY_D)) {
-			cam_pos[0] += cam_speed * elapsed_seconds;
-			cam_moved = true;
-		}
-		if (glfwGetKey (g_window, GLFW_KEY_PAGE_UP)) {
-			cam_pos[1] += cam_speed * elapsed_seconds;
-			cam_moved = true;
-		}
-		if (glfwGetKey (g_window, GLFW_KEY_PAGE_DOWN)) {
-			cam_pos[1] -= cam_speed * elapsed_seconds;
-			cam_moved = true;
-		}
-		if (glfwGetKey (g_window, GLFW_KEY_W)) {
-			cam_pos[2] -= cam_speed * elapsed_seconds;
-			cam_moved = true;
-		}
-		if (glfwGetKey (g_window, GLFW_KEY_S)) {
-			cam_pos[2] += cam_speed * elapsed_seconds;
-			cam_moved = true;
-		}
-		if (glfwGetKey (g_window, GLFW_KEY_LEFT)) {
-			cam_yaw += cam_yaw_speed * elapsed_seconds;
-			cam_moved = true;
-		}
-		if (glfwGetKey (g_window, GLFW_KEY_RIGHT)) {
-			cam_yaw -= cam_yaw_speed * elapsed_seconds;
-			cam_moved = true;
-		}
-        if(glfwGetKey(g_window, GLFW_KEY_SPACE)){
-            pausedTime = !pausedTime;
-        }
-            
-		/* update view matrix */
-		if (cam_moved) {
-			glm::mat4 T = glm::translate(glm::mat4(1.0f), glm::vec3(-cam_pos[0], -cam_pos[1], -cam_pos[2]));
-			glm::mat4 R = glm::rotate(glm::mat4(1.0f), -cam_yaw, glm::vec3(0.0f, 1.0f, 0.0f));
-			glm::mat4 view_mat = R * T;
-            glUniformMatrix4fv(firstPassShader("view_mat"), 1, GL_FALSE, glm::value_ptr(view_mat));
-			//glUniformMatrix4fv (view_mat_location, 1, GL_FALSE, glm::value_ptr(view_mat));
-		}
 		
-		bool model_moved = false;
-		if (glfwGetKey(g_window, GLFW_KEY_H)){
-			model_x -= 0.1f;
-			model_moved = true;			
-		}
-		if (glfwGetKey(g_window, GLFW_KEY_K)){
-			model_x += 0.1f;
-			model_moved = true;
-		}
-		if (glfwGetKey(g_window, GLFW_KEY_J)){
-			model_y -= 0.1f;
-			model_moved = true;
-		}
-		if (glfwGetKey(g_window, GLFW_KEY_U)){
-			model_y += 0.1f;
-			model_moved = true;
-		}
-
-		if (glfwGetKey(g_window, GLFW_KEY_C)){
-			angle -= 0.01f;
-			model_moved = true;
-		}
-		if (glfwGetKey(g_window, GLFW_KEY_V)){
-			angle += 0.01f;
-			model_moved = true;
-		}
-
-		if (model_moved){
-			glm::mat4 T = glm::translate(glm::mat4(1.0f), glm::vec3(model_x, model_y, 0.0f));
-			glm::mat4 R = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 0.0f, 1.0f));
-			glm::mat4 model_matrix = T * R;
-            glUniformMatrix4fv(firstPassShader("model_mat"), 1, GL_FALSE, glm::value_ptr(model_matrix));
-			//glUniformMatrix4fv(model_mat_location, 1, GL_FALSE, glm::value_ptr(model_matrix));
-			
-		}
 
 		if (GLFW_PRESS == glfwGetKey (g_window, GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose (g_window, 1);
 		}
+        
+        if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_W))
+            camera.cameraPosition += camera.cameraSpeed * camera.cameraFront;
+        
+        if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_S))
+            camera.cameraPosition -= camera.cameraSpeed * camera.cameraFront;
+        
+        if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_A))
+            camera.cameraPosition -= glm::normalize(glm::cross(camera.cameraFront, camera.cameraUp)) * camera.cameraSpeed;
+        
+        if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_D))
+            camera.cameraPosition += glm::normalize(glm::cross(camera.cameraFront, camera.cameraUp)) * camera.cameraSpeed;
+        
+        if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_U))
+            camera.cameraPosition.y += camera.cameraSpeed;// glm::normalize(glm::cross(camera.cameraFront, camera.cameraUp)) * camera.cameraSpeed;
+        
+        if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_J))
+            camera.cameraPosition.y -= camera.cameraSpeed;
+        
 		// put the stuff we've been drawing onto the display
 		glfwSwapBuffers (g_window);
 	}
