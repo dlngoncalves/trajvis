@@ -138,11 +138,11 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     camera.cameraFront = glm::normalize(front);
 }
 
-static size_t WriteCallBack(void *contents, size_t size, size_t nmemb, void *userp)
-{
-    ((std::string*)userp)->append((char*)contents,size*nmemb);
-    return size*nmemb;
-};
+//static size_t WriteCallBack(void *contents, size_t size, size_t nmemb, void *userp)
+//{
+//    ((std::string*)userp)->append((char*)contents,size*nmemb);
+//    return size*nmemb;
+//};
 
 int main () {
 	assert (restart_gl_log ());
@@ -250,6 +250,7 @@ int main () {
 //
 //    curPoint = Weather::getWeatherColor(trajetory.segList[0].segWeather.temperature);
     
+    //need to move this to trajectory class
     for(auto &curTraj : TrajList){
         glm::vec3 curPoint = glm::vec3(1.0,0.0,0.0);
         
@@ -272,7 +273,7 @@ int main () {
 	//glBufferData (GL_ARRAY_BUFFER, 3 * pointCount * sizeof (GLfloat), points, GL_STATIC_DRAW);
 	//glBufferData (GL_ARRAY_BUFFER, 3 * trajetory.positions.size() * sizeof (float), points, GL_STATIC_DRAW);
     
-    glBufferData (GL_ARRAY_BUFFER, 3 * allpos.size() * sizeof (float), points, GL_STATIC_DRAW);
+    glBufferData (GL_ARRAY_BUFFER, 3 * allpos.size() * sizeof (float), allpos.data(), GL_STATIC_DRAW);
     
     //weather data buffer;
     //was going to do this here like the normal type buffer but doesnt makes a lot of sense - you have to repeat the data per vertex
@@ -486,11 +487,19 @@ int main () {
 		//glViewport (0, 0, g_gl_width/2, g_gl_height);
 		//glViewport(0, 0, g_gl_width,  g_gl_height);
 		//glClearColor(0.5, 0.5, 0.5, 1.0);
-		glUseProgram (shader_programme);
-		glBindVertexArray (vao);
+		
+        glUseProgram (shader_programme);
+		//glBindVertexArray (vao);
         
         glPointSize(5);
-        glDrawArrays (GL_LINE_STRIP, 0, allpos.size());
+        //glDrawArrays (GL_LINE_STRIP, 0, allpos.size());
+        
+        for(auto curTraj : TrajList){
+            glBindVertexArray (curTraj.vertexArrayObject);
+            glDrawArrays (GL_LINE_STRIP, 0, curTraj.positions.size());
+        }
+        
+        
         
         if(!pausedTime)
             time += 0.1;

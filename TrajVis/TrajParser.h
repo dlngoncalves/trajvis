@@ -28,6 +28,7 @@ struct TrajSeg
     std::string timeStamp;
     float lat;
     float lon;
+    //wonder if I should add a xyz position here?
     //float temp;//temperature in celcius
     WeatherData segWeather;
     //glm::vec3 position; //might not need this I guess
@@ -49,7 +50,9 @@ private:
     
     const double originShift = 2 * M_PI * earthRadius /2; //I actually dont know what this is for
     
+    float *getWeatherVector();
     
+    void GetTrajWeatherData();
     
 public:
     //TrajParser();
@@ -60,9 +63,14 @@ public:
     
     //regarding those two vectors - first stores positions already converted to xyz and second stores lat-lon info
     std::vector<glm::vec3> positions; //moving this here for easier access
+    std::vector<glm::vec3> tempColors; 
     std::vector<TrajSeg> segList; //also moving this here for easier access but need to implement something better
+    //should I have
     
     void loadTrajectory();//or constructor?
+    
+    //should probably have a small constructor here
+    //and call other loader functions from it
     
     //WeatherData loadWeather(const TrajSeg &segment);
     //std::string loadWeatherData(std::string url);
@@ -75,6 +83,7 @@ public:
     
     GLSLShader &myShader;
     GLuint vertexBufferObject;
+    GLuint weatherBufferObject;
     GLuint vertexArrayObject;
     
     void SetupData();

@@ -5,8 +5,10 @@
 //  Created by Diego Gonçalves on 21/05/19.
 //  Copyright © 2019 Diego Gonçalves. All rights reserved.
 //
-
+#define GL_SILENCE_DEPRECATION
 #include "TrajParser.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <fstream>
 #include <string>
 #include <sstream>
@@ -15,6 +17,7 @@
 
 glm::vec3 TrajParser::basePosition;
 
+//this should probably be refactored into a loadTrajectory function
 TrajParser::TrajParser(std::string file,GLSLShader &shader) : myShader(shader)
 {
     std::ifstream trajFile;
@@ -65,6 +68,9 @@ TrajParser::TrajParser(std::string file,GLSLShader &shader) : myShader(shader)
                 lineStream.clear();
             }
         }
+        
+        GetTrajWeatherData();
+        SetupData();
     }
 }
 
@@ -116,3 +122,60 @@ glm::vec3 TrajParser::convertLatLon(TrajSeg &segment,glm::vec3 refPoint)
     return glm::vec3((posx -refPoint.x) * scale, segment.elevation, (posy -refPoint.z) * scale);//probably should not use elevation?
 }
 
+void TrajParser::SetupData()
+{
+    glGenBuffers(1, &vertexBufferObject);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
+    //not sure if should use glm data pointer or vector data pointer
+    glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(glm::vec3), (float *)glm::value_ptr(positions.front()), GL_STATIC_DRAW);
+    
+    
+    glGenBuffers(1, &weatherBufferObject);
+    glBindBuffer(GL_ARRAY_BUFFER, weatherBufferObject);
+    glBufferData(GL_ARRAY_BUFFER, tempColors.size() * sizeof(glm::vec3), (float *)glm::value_ptr(tempColors.front()), GL_STATIC_DRAW);
+    
+    glGenVertexArrays(1, &vertexArrayObject);
+    glBindVertexArray(vertexArrayObject);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0 , 0);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, weatherBufferObject);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+}
+
+void TrajParser::GetTrajWeatherData()
+{
+    glm::vec3 curPoint = glm::vec3(1.0,0.0,0.0);
+    
+    //only getting the data from the first point for now -- see stuf below
+    segList[0].segWeather = Weather::getWeather(&segList[0]);
+    curPoint = Weather::getWeatherColor(segList[0].segWeather.temperature);
+    
+    for(int i = 0; i < segList.size(); i++){
+        tempColors.push_back(curPoint);
+        segList[i].segWeather = segList[0].segWeather;
+    }
+    
+}
+
+//in time do a binary search of the trajectory
+//get first point
+//get last point
+//if difference is greater than x
+//divide and do it again recursively
+
+//wont actually need this I think
+float * TrajParser::getWeatherVector()
+{
+    float * weatherArray = new float[segList.size()];
+    
+    for(int i = 0; i < segList.size(); i++){
+        weatherArray[i] = segList[i].segWeather.temperature;
+    }
+    
+    return weatherArray;
+}
