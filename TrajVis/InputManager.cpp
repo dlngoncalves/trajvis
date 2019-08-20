@@ -7,3 +7,8 @@
 //
 
 #include "InputManager.h"
+
+void InputController::mouse_callback(GLFWwindow *window, double xpos, double ypos)
+{
+    
+}

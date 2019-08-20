@@ -5,17 +5,169 @@
 //  Created by Diego Gonçalves on 21/05/19.
 //  Copyright © 2019 Diego Gonçalves. All rights reserved.
 //
-
+#define GL_SILENCE_DEPRECATION
 #include "TrajParser.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <fstream>
 #include <string>
 #include <sstream>
 #include <iostream>
 #include <curl/curl.h>
+#include <vector>
+#include <sqlite3.h>
 
 glm::vec3 TrajParser::basePosition;
 
-TrajParser::TrajParser(std::string file)
+
+//geolife format
+//lat
+//lon
+//0
+//altitude in feet
+//date as days
+//date
+//time
+
+static int trajCallback(void *TrajectoryName, int argc, char **argv, char **azColName)
+{
+    //TrajParser *traj = (TrajParser *)Trajectory;
+    //int i;
+    //std::string query,trajname;
+    //int rc;
+    
+    //trajname = argv[0];
+    std::string name = argv[0];
+    *(std::string *)TrajectoryName = name;
+    //query = "SELECT * FROM TRAJSEC WHERE TRAJECTORYNAME IS " + trajname;
+    
+//    rc = sqlite3_exec(db, query.c_str(),trajCallback, 0, &zErrMsg);
+//
+//    for(i=0; i<argc; i++){
+//      printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+//
+//    }
+//    printf("\n");
+    return 0;
+}
+
+static int trajSegCallback(void *Trajectory, int argc, char **argv, char **azColName)
+{
+    TrajParser *traj = (TrajParser *)Trajectory;
+    TrajSeg auxSeg;
+    int columnCount = 0;
+    
+    for(int i=0; i<argc; i++){
+        
+        //printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+        if(strcmp(azColName[i],"latitude") == 0){
+            auxSeg.lat = atof(argv[i]);
+        }
+        if(strcmp(azColName[i],"longitude") == 0 ){
+            auxSeg.lon = atof(argv[i]);
+        }
+        if(strcmp(azColName[i],"temperature") == 0 ){
+            auxSeg.segWeather.temperature = atof(argv[i]);
+        }
+        if(strcmp(azColName[i],"datetime") == 0 ){
+            auxSeg.timeStamp = argv[i];
+        }
+        if(strcmp(azColName[i],"elevation") == 0 ){
+            auxSeg.elevation = atof(argv[i]);
+        }
+        
+        columnCount++;
+        if(columnCount == 5){
+            if(TrajParser::basePosition.x == 0 && TrajParser::basePosition.y == 0 && TrajParser::basePosition.z == 0){
+                TrajParser::basePosition = traj->convertLatLon(auxSeg,glm::vec3(0,auxSeg.elevation,0));
+            }
+            glm::vec3 auxPosition = traj->convertLatLon(auxSeg,TrajParser::basePosition);
+            
+            glm::vec3 curPoint = glm::vec3(1.0,0.0,0.0);
+            curPoint = Weather::getWeatherColor(auxSeg.segWeather.temperature);
+            
+            traj->tempColors.push_back(curPoint);
+            traj->positions.push_back(auxPosition);
+            traj->segList.push_back(auxSeg);
+            columnCount = 0;
+        }
+    }
+    
+    return 0;
+}
+
+//should abstract away sql stuff
+void insertTrajectory(TrajParser &curTraj,std::string trajName, std::string user,sqlite3 *db)
+{
+    std::string query;
+    int rc;
+    char *zErrMsg = 0;
+    
+    query = "INSERT INTO TRAJECTORY (trajectoryname,user) VALUES(" + trajName + "," + user + ");";
+    rc = sqlite3_exec(db, query.c_str(),0, 0, &zErrMsg);
+    
+    for(auto curSeg : curTraj.segList){
+        query = "INSERT INTO TRAJSEG(latitude, longitude, temperature, datetime, elevation, trajectoryname) VALUES (";
+        query = query + std::to_string(curSeg.lat) + "," + std::to_string(curSeg.lon) + "," + std::to_string(curSeg.segWeather.temperature);
+        query = query + ", '" + curSeg.timeStamp + "' ," + std::to_string(curSeg.elevation) + " ," + trajName + ");";
+        rc = sqlite3_exec(db, query.c_str(),0, 0, &zErrMsg);
+    }
+}
+
+std::vector<TrajParser> TrajParser::LoadTrajDescription(std::string file, GLSLShader &shader)
+{
+    std::vector<TrajParser> trajectories;
+    
+    std::ifstream trajFile;
+    std::string line;
+    std::string path;
+    trajFile.open(file,std::ifstream::in);
+    sqlite3 *db;
+    std::string query;
+    std::string trajName;
+    char *zErrMsg = 0;
+    
+    
+    int rc = sqlite3_open("trajectories.db", &db);
+    //if(rc){
+    
+    
+        if(trajFile.is_open()){
+            while (trajFile.good()) {
+                getline(trajFile,line);//first look for trajectory in the db
+                query = "SELECT * FROM TRAJECTORY WHERE TRAJECTORYNAME IS " + line.substr(0,line.size()-4) + ";";
+                rc = sqlite3_exec(db, query.c_str(),trajCallback, &trajName, &zErrMsg);
+                
+                //if(!(rc ==0 && zErrMsg == NULL)){//in this case the trajectory doesnt exists in the db
+                if(trajName == ""){//find a better way to do this
+                    path = "trajectories/" + line;
+                    TrajParser curTraj(path,shader);
+                    trajectories.push_back(curTraj);
+                    insertTrajectory(curTraj, line.substr(0,line.size()-4), "0", db);
+                }
+                
+                if(trajName != ""){
+                    query = "SELECT * FROM TRAJSEG WHERE TRAJECTORYNAME IS " + trajName;
+                    TrajParser curTrajDB(shader);
+                    rc = sqlite3_exec(db, query.c_str(),trajSegCallback, &curTrajDB, &zErrMsg);
+                    curTrajDB.SetupData();
+                    trajectories.push_back(curTrajDB);
+                }
+                
+                trajName = "";
+            }
+        }
+    //}
+    return trajectories;
+}
+
+
+//this should probably be refactored into a loadTrajectory function
+//should I derive this class for the geolife stuff?
+//TrajParser::TrajParser(std::string file,GLSLShader &shader) : myShader(shader)
+
+
+void TrajParser::loadTrajectory(std::string file)
 {
     std::ifstream trajFile;
     std::string line;
@@ -29,15 +181,15 @@ TrajParser::TrajParser(std::string file)
     trajFile.open(file,std::ifstream::in);
     
     if(basePosition.x == 0 && basePosition.y == 0 && basePosition.z == 0){
-
+        //????
     }
-    
+    int lineCount = 0;
     if(trajFile.is_open()){
         while (trajFile.good()) {
             getline(trajFile,line);
             
-            if(line[0] != '#'){
-                
+            //if(line[0] != '#'){ //changed for geolife
+            if(lineCount > 5){
                 //making changes to process geolife trajectories - also csv files, so not a lot of difference from what've been doing.
                 //but first, gonna change here to load weather data - also gonna change the struct to hold weather data
                 //also also, the weather data can be passed to the gpu as a vertex buffer object
@@ -64,7 +216,11 @@ TrajParser::TrajParser(std::string file)
                 segList.push_back(auxSeg);
                 lineStream.clear();
             }
+            lineCount++;
         }
+        
+        GetTrajWeatherData();
+        SetupData();
     }
 }
 
@@ -73,25 +229,48 @@ TrajParser::TrajParser(std::string file)
 std::stringstream &operator >> (std::stringstream &lineStream, TrajSeg &auxSeg)
 {
     std::string token;
+    std::string dateTime;
     int count = 0;
     
+    //changing here for geolife
     while(getline(lineStream, token, ',')){
         switch (count) { //assuming order is always the same
             case 0:
-                auxSeg.elevation = atof(token.c_str());
-                break;
-            case 1:
-                auxSeg.timeStamp = token;
-                break;
-            case 2:
                 auxSeg.lat = atof(token.c_str());
                 break;
-            case 3:
+            case 1:
                 auxSeg.lon = atof(token.c_str());
                 break;
+            case 2: break;//always zero
+            case 3:
+                auxSeg.elevation = atof(token.c_str());
+                break;
+            case 4: break;// date in days, not using here
+            case 5:
+                auxSeg.timeStamp = token;
+                break;
+            case 6:
+                token.pop_back();
+                auxSeg.timeStamp = auxSeg.timeStamp + "T" + token + "Z";
             default:
                 break;
         }
+//        switch (count) { //assuming order is always the same
+//            case 0:
+//                auxSeg.elevation = atof(token.c_str());
+//                break;
+//            case 1:
+//                auxSeg.timeStamp = token;
+//                break;
+//            case 2:
+//                auxSeg.lat = atof(token.c_str());
+//                break;
+//            case 3:
+//                auxSeg.lon = atof(token.c_str());
+//                break;
+//            default:
+//                break;
+//        }
         count++;
         
         
@@ -99,6 +278,52 @@ std::stringstream &operator >> (std::stringstream &lineStream, TrajSeg &auxSeg)
     
     return lineStream;
 }
+
+//void GeolifeTrajectory::loadTrajectory(std::string file)
+//{
+//    std::ifstream trajFile;
+//    std::string line;
+//    std::stringstream lineStream;
+//    std::string token;
+//
+//    TrajSeg auxSeg;
+//    glm::vec3 auxPosition;
+//    glm::vec3 auxRefPoint;
+//
+//    trajFile.open(file,std::ifstream::in);
+//
+//    if(basePosition.x == 0 && basePosition.y == 0 && basePosition.z == 0){
+//        //????
+//    }
+//    int lineCount = 0;
+//    if(trajFile.is_open()){
+//        while (trajFile.good()) {
+//            getline(trajFile,line);
+//            if(lineCount > 5){
+//                lineStream << line;
+//                lineStream >> auxSeg;
+//
+//                if(basePosition.x == 0 && basePosition.y == 0 && basePosition.z == 0){
+//                    basePosition = convertLatLon(auxSeg,glm::vec3(0,auxSeg.elevation,0));
+//                }
+//
+//
+//                auxPosition = convertLatLon(auxSeg,basePosition);
+//
+//                positions.push_back(auxPosition);
+//
+//                segList.push_back(auxSeg);
+//                lineStream.clear();
+//            }
+//
+//            lineCount++;
+//        }
+//
+//        GetTrajWeatherData();
+//        SetupData();
+//
+//    }
+//}
 
 //gonna copy the stuff from mapbox here
 //08/07 - this is working, but not very robust? dependent on stuff like scale, ref position etc ? need to look into this again
@@ -113,46 +338,65 @@ glm::vec3 TrajParser::convertLatLon(TrajSeg &segment,glm::vec3 refPoint)
     
     //return glm::vec3((posx -refPoint.x) * scale, (posy -refPoint.y) * scale, segment.elevation);//probably should not use elevation?
     
-    return glm::vec3((posx -refPoint.x) * scale, segment.elevation, (posy -refPoint.z) * scale);//probably should not use elevation?
+    //return glm::vec3((posx -refPoint.x) * scale, segment.elevation, (posy -refPoint.z) * scale);//probably should not use elevation?
+    return glm::vec3((posx -refPoint.x) * scale, 0.0f, (posy -refPoint.z) * scale);//probably should not use elevation?
 }
 
-//dark sky api key bef82cf6478375092ee305cb44b45a1e
-//WeatherData TrajParser::loadWeather(const TrajSeg &segment)
-//{
-//    WeatherData segWeather;
-//    std::string url;//this could be some class member/ or a const or something
-//    url = "https://api.darksky.net/forecast/bef82cf6478375092ee305cb44b45a1e/";
-//    url += std::to_string(segment.lat) + "," + std::to_string(segment.lon);
-//    url += "," + segment.timeStamp;
-//    
-//    std::string response = loadWeatherData(url);
-//    return segWeather;
-//}
+void TrajParser::SetupData()
+{
+    //this works but we should look into abstracting away from the trajectory code the opengl stuff
+    glGenBuffers(1, &vertexBufferObject);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
+    //not sure if should use glm data pointer or vector data pointer
+    glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(glm::vec3), (float *)glm::value_ptr(positions.front()), GL_STATIC_DRAW);
+    
+    
+    glGenBuffers(1, &weatherBufferObject);
+    glBindBuffer(GL_ARRAY_BUFFER, weatherBufferObject);
+    glBufferData(GL_ARRAY_BUFFER, tempColors.size() * sizeof(glm::vec3), (float *)glm::value_ptr(tempColors.front()), GL_STATIC_DRAW);
+    
+    glGenVertexArrays(1, &vertexArrayObject);
+    glBindVertexArray(vertexArrayObject);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0 , 0);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, weatherBufferObject);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+}
 
-//dark sky api key bef82cf6478375092ee305cb44b45a1e
-//https://api.darksky.net/forecast/bef82cf6478375092ee305cb44b45a1e/37.8267,-122.4233
-//this dark sky processing needs to go into its own class
+void TrajParser::GetTrajWeatherData()
+{
+    glm::vec3 curPoint = glm::vec3(1.0,0.0,0.0);
+    
+    //only getting the data from the first point for now -- see stuf below
+    segList[0].segWeather = Weather::getWeather(&segList[0]);
+    curPoint = Weather::getWeatherColor(segList[0].segWeather.temperature);
+    
+    for(int i = 0; i < segList.size(); i++){
+        tempColors.push_back(curPoint);
+        segList[i].segWeather = segList[0].segWeather;
+    }
+    
+}
 
-//should probably do a big wrapper for everything curl related reaaly
-//callback for curl data
-//size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
-//{
-//
-//}
+//in time do a binary search of the trajectory
+//get first point
+//get last point
+//if difference is greater than x
+//divide and do it again recursively
 
-//std string but the return from the api is json
-//std::string loadWeatherData(std::string url){
-//    //this handle should be ONLY ONE for all the requests - unless we are trying to do things in multiple threads
-//    CURL *handle = curl_easy_init();
-//    if(handle){
-//        CURLcode res;
-//        curl_easy_setopt(handle, CURLOPT_URL,url.c_str());
-//        curl_easy_setopt(handle, CURLOPT_WRITEDATA)
-//        res = curl_easy_perform(handle);
-//    }
-//
-//}
-//TrajParser::TrajParser()
-//{
-//    //why this
-//}
+//wont actually need this I think
+float * TrajParser::getWeatherVector()
+{
+    float * weatherArray = new float[segList.size()];
+    
+    for(int i = 0; i < segList.size(); i++){
+        weatherArray[i] = segList[i].segWeather.temperature;
+    }
+    
+    return weatherArray;
+}

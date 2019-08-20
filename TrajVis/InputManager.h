@@ -10,6 +10,7 @@
 #define InputManager_h
 
 #include <stdio.h>
+#include <GLFW/glfw3.h> // GLFW helper library
 
 //should input be a singleton?
 class InputController {
@@ -18,5 +19,7 @@ class InputController {
     public:
         InputController();
         ~InputController();
+    
+    static void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 };
 #endif /* InputManager_h */
