@@ -41,11 +41,9 @@ struct TrajSeg
 
 class TrajParser {
     
-private:
+protected:
     
-    
-    glm::vec3 convertLatLon(TrajSeg &segment,glm::vec3 refPoint);
-    
+
     const int earthRadius = 6378137;
     
     const double originShift = 2 * M_PI * earthRadius /2; //I actually dont know what this is for
@@ -56,10 +54,22 @@ private:
     
 public:
     //TrajParser();
-    TrajParser(std::string file,GLSLShader &shader);
+    glm::vec3 convertLatLon(TrajSeg &segment,glm::vec3 refPoint);
+    
+    TrajParser(std::string file,GLSLShader &shader) : myShader(shader)
+    {
+        loadTrajectory(file);
+    };
     //~TrajParser();
     
+    TrajParser(GLSLShader &shader): myShader(shader)
+    {
+        //empty constructor to load data from database
+    }
+    
     static glm::vec3 basePosition;
+    
+    static std::vector<TrajParser> LoadTrajDescription(std::string file,GLSLShader &shader);
     
     //regarding those two vectors - first stores positions already converted to xyz and second stores lat-lon info
     std::vector<glm::vec3> positions; //moving this here for easier access
@@ -67,7 +77,7 @@ public:
     std::vector<TrajSeg> segList; //also moving this here for easier access but need to implement something better
     //should I have
     
-    void loadTrajectory();//or constructor?
+    virtual void loadTrajectory(std::string file);//or constructor?
     
     //should probably have a small constructor here
     //and call other loader functions from it
@@ -88,6 +98,11 @@ public:
     
     void SetupData();
 };
+
+//class GeolifeTrajectory : public TrajParser
+//{
+//    virtual void loadTrajectory(std::string file);
+//};
 
 
 #endif /* TrajParser_h */

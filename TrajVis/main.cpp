@@ -2,14 +2,17 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #define GL_SILENCE_DEPRECATION
+#ifdef __APPLE__
+    #include <OpenGL/gl3.h>
+    #include <OpenGL/gl3ext.h>
+#else
+    #include <GL/glew.h> // include GLEW and new version of GL on Windows
+#endif
+
 #include "gl_utils.h"
-///#include <GL/glew.h> // include GLEW and new version of GL on Windows
-#include <OpenGL/gl3.h>
-#include <OpenGL/gl3ext.h>
 #include <GLFW/glfw3.h> // GLFW helper library
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <assert.h>
 #include <string.h>
 #include <stdarg.h>
@@ -27,6 +30,7 @@
 #include "GLSLShader.h"
 #include <string>
 #include <curl/curl.h>
+#include <sqlite3.h>
 
 #define GL_LOG_FILE "gl.log"
 #define NUM_WAVES 5
@@ -41,21 +45,6 @@ Camera camera;
 GLfloat lastx = g_gl_width/2, lasty = g_gl_height/2;
 bool firstMouse = true;
 
-bool pausedTime = false;
-
-GLuint frameBuffer;
-GLuint frameBufferTexture;
-GLuint framBufferNormalTexture;
-GLuint frameBufferPositionTexture;
-
-GLuint depthTexture;
-GLuint depthrenderbuffer;
-
-//CubeMap Stuff, move later
-GLuint cube_vbo;
-GLuint cube_vao;
-GLuint cube_texture;
-GLuint tex_cube;
 
 struct shader_traj_point
 {
@@ -78,33 +67,6 @@ struct shader_traj_point
 //SCREEN SPACE DEFERRED STUFF MIGHT BE BETTER FOR OPTIMIZATION
 //ALSO NEED TO FIGURE OUT MAP RENDERING/MATCHING
 
-//this could make sense - 
-//might use a framebuffer? maybe we  only render the trajectories in screen space? might try some different things
-void CreateFrameBuffer()
-{
-    glGenFramebuffers(1, &frameBuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
-    
-    glGenTextures(1, &frameBufferTexture);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, frameBufferTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_gl_width, g_gl_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-    
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, frameBufferTexture, 0);
-    
-    //with this we are generating one texture from the framebuffer data - add more textures as needed, as seen in the defered shading stuff
-
-    //is this part needed ? the renderbuffer - from what I can recall - is needed for depth operations - might be needed
-    //glGenRenderbuffers(...)
-}
-
-
-//shoud move this sort of thing into the inputManager class
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
     if (firstMouse)
@@ -138,32 +100,43 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     camera.cameraFront = glm::normalize(front);
 }
 
-//static size_t WriteCallBack(void *contents, size_t size, size_t nmemb, void *userp)
-//{
-//    ((std::string*)userp)->append((char*)contents,size*nmemb);
-//    return size*nmemb;
-//};
+void processs_keyboard(GLFWwindow *window, Camera *cam)
+{
+    if (GLFW_PRESS == glfwGetKey (window, GLFW_KEY_ESCAPE)) {
+        glfwSetWindowShouldClose (window, 1);
+    }
+    
+    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_W))
+        cam->cameraPosition += cam->cameraSpeed * cam->cameraFront;
+    
+    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_S))
+        cam->cameraPosition -= cam->cameraSpeed * cam->cameraFront;
+    
+    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_A))
+        cam->cameraPosition -= glm::normalize(glm::cross(cam->cameraFront, cam->cameraUp)) * cam->cameraSpeed;
+    
+    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_D))
+        cam->cameraPosition += glm::normalize(glm::cross(cam->cameraFront, cam->cameraUp)) * cam->cameraSpeed;
+    
+    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_U))
+        cam->cameraPosition.y += cam->cameraSpeed;// glm::normalize(glm::cross(camera.cameraFront, camera.cameraUp)) * camera.cameraSpeed;
+    
+    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_J))
+        cam->cameraPosition.y -= cam->cameraSpeed;
+}
 
 int main () {
 	assert (restart_gl_log ());
 /*------------------------------start GL context------------------------------*/
 	assert (start_gl ());
 
-    //setting camera parameters like this is kinda weird
-    //24.3,2019-05-09T16:21:18Z,-30.0572580,-51.1717820
-    //camera.cameraPosition = glm::vec3(-51.0, -30.0, 20.0);
-    //posx    float    -5696417
-    //posy    float    -3510912
-    //just using first point as starting for testing
-    //camera.cameraPosition = glm::vec3(-5696417, -3510912, 30.0);
-//    camera.cameraPosition = glm::vec3(0, 0, 30.0);
     
     camera.cameraPosition = TrajParser::basePosition;
-    camera.cameraPosition.z = 100;
-    //camera.cameraPosition.y = 50;
+    //camera.cameraPosition.z = 100;
+    camera.cameraPosition.y = 500;
     camera.cameraFront = glm::vec3(0.0, 0.0, -1.0);
     camera.cameraUp = glm::vec3(0.0, 1.0, 0.0);
-    camera.cameraSpeed = 0.05;
+    camera.cameraSpeed = 10;
     camera.pitch = 0.0;
     camera.yaw = 0.0;
     
@@ -179,6 +152,8 @@ int main () {
     firstPassShader.AddUniform("model_mat");
     
     glfwSetCursorPosCallback(g_window, mouse_callback);
+    glfwSetInputMode(g_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
     
     //need to change here to get all trajectory files on dir -- but will have to figure something to get files on demand
     
@@ -190,23 +165,27 @@ int main () {
     //would make sense for each trajectory to be connected to a shader
     //should I have a shader object pointer/reference in the trajectory?
     //for now will just iterate over the list
-    TrajParser trajetory("trajectories/walk_11.csv",firstPassShader);
-    TrajParser trajetory2("trajectories/walk_16.csv",firstPassShader);
-    TrajParser trajetory3("trajectories/walk_17.csv",firstPassShader);
-    TrajParser trajetory4("trajectories/walk_20.csv",firstPassShader);
     
-    std::vector<TrajParser> TrajList;
-    TrajList.push_back(trajetory);
-    TrajList.push_back(trajetory2);
-    TrajList.push_back(trajetory3);
-    TrajList.push_back(trajetory4);
+    //TrajParser trajetory("trajectories/20080506020147.plt",firstPassShader);
+    //TrajParser trajetory2("trajectories/20080505124345.plt",firstPassShader);
+    //TrajParser trajetory3("trajectories/20080509004801.plt",firstPassShader);
+    
+//    TrajParser trajetory("trajectories/walk_11.csv",firstPassShader);
+//    TrajParser trajetory2("trajectories/walk_16.csv",firstPassShader);
+//    TrajParser trajetory3("trajectories/walk_17.csv",firstPassShader);
+//    TrajParser trajetory4("trajectories/walk_20.csv",firstPassShader);
+    
+    std::vector<TrajParser> TrajList = TrajParser::LoadTrajDescription("trajectories/trajectories.txt",firstPassShader);
+//    TrajList.push_back(trajetory);
+//    TrajList.push_back(trajetory2);
+//    TrajList.push_back(trajetory3);
+//    TrajList.push_back(trajetory4);
 
-
-    glm::mat4 perspectiveMatrix = glm::perspective(glm::radians(45.0f), (float)g_gl_width / g_gl_height, 0.1f, 1000.0f);
+    //camera.cameraPosition.y = trajetory.positions[0].y;
+    glm::mat4 perspectiveMatrix = glm::perspective(glm::radians(45.0f), (float)g_gl_width / g_gl_height, 0.1f, 10000.0f);
 	glm::mat4 model_mat = glm::mat4(1.0f);
-    
+    model_mat = glm::scale(model_mat, glm::vec3(0.2,0.2,0.2));
 	
-    GLfloat time = 0.0f;
     GLfloat deltaTime = 0.0f;
     GLfloat lastFrame = 0.0f;
     
@@ -219,51 +198,32 @@ int main () {
 	glFrontFace (GL_CCW); // GL_CCW for counter clock-wise
 	
     glViewport(0, 0, g_gl_width,  g_gl_height);
-    
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glDepthMask(GL_TRUE);
+
     glUniformMatrix4fv(firstPassShader("projection_mat"), 1, GL_FALSE, glm::value_ptr(perspectiveMatrix));
     
 	while (!glfwWindowShouldClose (g_window)) {
 		
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glDepthMask(GL_FALSE);
-        //glUseProgram(cube_shader_programme);
         
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, tex_cube);
-        glBindVertexArray(cube_vao);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glDepthMask(GL_TRUE);
-        
-        static double previous_seconds = glfwGetTime ();
-		double current_seconds = glfwGetTime ();
-		double elapsed_seconds = current_seconds - previous_seconds;
-		previous_seconds = current_seconds;
 		
         GLfloat currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        camera.cameraSpeed = 5.0f * deltaTime;
+        camera.cameraSpeed = 100.0f * deltaTime;
         
-        time += 0.001; //just to move the camera around
-        if (time >= 360)
-            time = 0;
         
         glm::mat4 viewMatrix = glm::lookAt(camera.cameraPosition, camera.cameraPosition + camera.cameraFront, camera.cameraUp);
         
 		_update_fps_counter (g_window);
-		// wipe the drawing surface clear
-		//glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		//glViewport (0, 0, g_gl_width/2, g_gl_height);
-		//glViewport(0, 0, g_gl_width,  g_gl_height);
-		//glClearColor(0.5, 0.5, 0.5, 1.0);
 		
         firstPassShader.Use();
-        //glUseProgram (firs);
+
 		glPointSize(5);
         
-//        glUniformMatrix4fv(firstPassShader("projection_mat"), 1, GL_FALSE, proj_mat);
         glUniformMatrix4fv(firstPassShader("view_mat"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
         glUniformMatrix4fv(firstPassShader("model_mat"), 1, GL_FALSE, glm::value_ptr(model_mat));
         
@@ -272,12 +232,7 @@ int main () {
             glDrawArrays (GL_LINE_STRIP, 0, curTraj.positions.size());
         }
         
-        
-        if(!pausedTime)
-            time += 0.1;
-//
-//        std::cout << time << "\n";
-//        glUniform1f(time_location, time);
+
 
 		// update other events like input handling 
 		glfwPollEvents ();
@@ -286,29 +241,29 @@ int main () {
         //thats probably why there is a camera movement part and a model movement part I think. need to clean thisss
 /*-----------------------------move camera here-------------------------------*/
 		// control keys
-		
-
-		if (GLFW_PRESS == glfwGetKey (g_window, GLFW_KEY_ESCAPE)) {
-			glfwSetWindowShouldClose (g_window, 1);
-		}
-        
-        if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_W))
-            camera.cameraPosition += camera.cameraSpeed * camera.cameraFront;
-        
-        if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_S))
-            camera.cameraPosition -= camera.cameraSpeed * camera.cameraFront;
-        
-        if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_A))
-            camera.cameraPosition -= glm::normalize(glm::cross(camera.cameraFront, camera.cameraUp)) * camera.cameraSpeed;
-        
-        if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_D))
-            camera.cameraPosition += glm::normalize(glm::cross(camera.cameraFront, camera.cameraUp)) * camera.cameraSpeed;
-        
-        if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_U))
-            camera.cameraPosition.y += camera.cameraSpeed;// glm::normalize(glm::cross(camera.cameraFront, camera.cameraUp)) * camera.cameraSpeed;
-        
-        if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_J))
-            camera.cameraPosition.y -= camera.cameraSpeed;
+        processs_keyboard(g_window, &camera);
+//
+//        if (GLFW_PRESS == glfwGetKey (g_window, GLFW_KEY_ESCAPE)) {
+//            glfwSetWindowShouldClose (g_window, 1);
+//        }
+//
+//        if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_W))
+//            camera.cameraPosition += camera.cameraSpeed * camera.cameraFront;
+//
+//        if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_S))
+//            camera.cameraPosition -= camera.cameraSpeed * camera.cameraFront;
+//
+//        if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_A))
+//            camera.cameraPosition -= glm::normalize(glm::cross(camera.cameraFront, camera.cameraUp)) * camera.cameraSpeed;
+//
+//        if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_D))
+//            camera.cameraPosition += glm::normalize(glm::cross(camera.cameraFront, camera.cameraUp)) * camera.cameraSpeed;
+//
+//        if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_U))
+//            camera.cameraPosition.y += camera.cameraSpeed;// glm::normalize(glm::cross(camera.cameraFront, camera.cameraUp)) * camera.cameraSpeed;
+//
+//        if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_J))
+//            camera.cameraPosition.y -= camera.cameraSpeed;
         
 		// put the stuff we've been drawing onto the display
 		glfwSwapBuffers (g_window);
