@@ -10,7 +10,8 @@
 #include <string>
 #include "Weather.h"
 #include "TrajParser.h"
-#include <algorithm> 
+#include <algorithm>
+#include <iostream>
 
 //dark sky api key bef82cf6478375092ee305cb44b45a1e
 //https://api.darksky.net/forecast/bef82cf6478375092ee305cb44b45a1e/37.8267,-122.4233
@@ -35,7 +36,8 @@ WeatherData Weather::getWeather(TrajSeg *segment)
     std::string lon = std::to_string(segment->lon);
     std::string time = segment->timeStamp; //kinda dont need this one I guess
     
-    url += APIKey + "/" + lat + "," + lon + "," + time + "?exclude=hourly,daily&units=ca";
+    //url += APIKey + "/" + lat + "," + lon + "," + time + "?exclude=hourly,daily&units=ca";
+    url += APIKey + "/" + lat + "," + lon + "," + time + "?units=ca";
     
     std::string responseBuffer;
     CURL *handle = curl_easy_init();
@@ -47,8 +49,26 @@ WeatherData Weather::getWeather(TrajSeg *segment)
         res = curl_easy_perform(handle);
     }
     
+    float temperature;
     json weatherObj = json::parse(responseBuffer);
-    float temperature = weatherObj["currently"]["temperature"].get<float>();
+    
+    //try catch block here because the dark ski api seems to return currently empty for some requests. in this case we look elsewhere.
+    try{
+        temperature = weatherObj["currently"]["temperature"].get<float>();
+    }
+    catch(json::exception &e){
+        std::cout << "cant load precise weather" << "\n";
+        json array = weatherObj["hourly"]["data"];
+        int date = weatherObj["currently"]["time"].get<int>();
+        int dif = INT_MAX;
+        for(int i = 0; i < array.size(); i++){
+            int curtime = array.at(i)["time"].get<int>();
+            if(abs(curtime - date) < dif){
+                temperature = array.at(i)["temperature"].get<float>();
+                dif = abs(curtime - date);
+            }
+        }
+    }
     //Condition condt = weatherObj will have to do some more processing for this (ie a switch)
     
     tempWeather.temperature = temperature;
@@ -65,8 +85,8 @@ glm::vec3 Weather::getWeatherColor(float temperature)
     //adapted from https://stackoverflow.com/questions/20792445/calculate-rgb-value-for-a-range-of-values-to-create-heat-map
     //for now the range will be 20 to 25 - if outside just clamp
     
-    float minimum = 20.0f;
-    float maximum = 25.0f;
+    float minimum = 0.0f;
+    float maximum = 30.0f;
     float ratio = 2 * (temperature-minimum) / (maximum - minimum);
     float b = 255*(1 - ratio);
     float r = 255*(ratio - 1);
