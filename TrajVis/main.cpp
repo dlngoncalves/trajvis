@@ -2,10 +2,18 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #define GL_SILENCE_DEPRECATION
-#include "gl_utils.h"
-///#include <GL/glew.h> // include GLEW and new version of GL on Windows
+
+#ifdef __APPLE__
 #include <OpenGL/gl3.h>
 #include <OpenGL/gl3ext.h>
+#else
+#include <GL/glew.h> // include GLEW and new version of GL on Windows
+#endif
+
+#include "gl_utils.h"
+
+
+
 #include <GLFW/glfw3.h> // GLFW helper library
 #include <stdio.h>
 #include <stdlib.h>

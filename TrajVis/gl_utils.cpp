@@ -1,6 +1,13 @@
 /******************************************************************************\
 | OpenGL 4 Example Code.                                                       |
 \******************************************************************************/
+
+#ifdef __APPLE__
+#include <OpenGL/gl3.h>
+#include <OpenGL/gl3ext.h>
+#else
+#include <GL/glew.h> // include GLEW and new version of GL on Windows
+#endif
 #include "gl_utils.h"
 #include <stdio.h>
 #include <time.h>
