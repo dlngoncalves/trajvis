@@ -31,6 +31,7 @@
 #include <string>
 #include <curl/curl.h>
 #include <sqlite3.h>
+#include <Map.hpp>
 
 #define GL_LOG_FILE "gl.log"
 #define NUM_WAVES 5
@@ -131,9 +132,10 @@ int main () {
 	assert (start_gl ());
 
     
-    camera.cameraPosition = TrajParser::basePosition;
+    //camera.cameraPosition = TrajParser::basePosition;
     //camera.cameraPosition.z = 100;
-    camera.cameraPosition.y = 500;
+    //camera.cameraPosition.y = 500;
+    camera.cameraPosition = glm::vec3(0.0,0.0,0.0);
     camera.cameraFront = glm::vec3(0.0, 0.0, -1.0);
     camera.cameraUp = glm::vec3(0.0, 1.0, 0.0);
     camera.cameraSpeed = 10;
@@ -142,14 +144,26 @@ int main () {
     
     //for now using the first pass shader as the trajectory rendering one
     
-    GLSLShader firstPassShader;
-    firstPassShader.LoadFromFile(GL_VERTEX_SHADER, "vert.glsl");
-    firstPassShader.LoadFromFile(GL_FRAGMENT_SHADER, "frag.glsl");
-    firstPassShader.CreateAndLinkProgram();
-    firstPassShader.Use();
-    firstPassShader.AddUniform("view_mat");
-    firstPassShader.AddUniform("projection_mat");
-    firstPassShader.AddUniform("model_mat");
+    
+//    GLSLShader firstPassShader;
+//    firstPassShader.LoadFromFile(GL_VERTEX_SHADER, "vert.glsl");
+//    firstPassShader.LoadFromFile(GL_FRAGMENT_SHADER, "frag.glsl");
+//    firstPassShader.CreateAndLinkProgram();
+//    firstPassShader.Use();
+//    firstPassShader.AddUniform("view_mat");
+//    firstPassShader.AddUniform("projection_mat");
+//    firstPassShader.AddUniform("model_mat");
+    
+    
+    GLSLShader mapShader;
+    mapShader.LoadFromFile(GL_VERTEX_SHADER, "map_vs.glsl");
+    mapShader.LoadFromFile(GL_FRAGMENT_SHADER, "map_fs.glsl");
+    mapShader.CreateAndLinkProgram();
+    mapShader.Use();
+    mapShader.AddUniform("view_mat");
+    mapShader.AddUniform("projection_mat");
+    mapShader.AddUniform("model_mat");
+    
     
     glfwSetCursorPosCallback(g_window, mouse_callback);
     glfwSetInputMode(g_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -175,7 +189,8 @@ int main () {
 //    TrajParser trajetory3("trajectories/walk_17.csv",firstPassShader);
 //    TrajParser trajetory4("trajectories/walk_20.csv",firstPassShader);
     
-    std::vector<TrajParser> TrajList = TrajParser::LoadTrajDescription("trajectories/trajectories.txt",firstPassShader);
+    //std::vector<TrajParser> TrajList = TrajParser::LoadTrajDescription("trajectories/trajectories.txt",firstPassShader);
+    
 //    TrajList.push_back(trajetory);
 //    TrajList.push_back(trajetory2);
 //    TrajList.push_back(trajetory3);
@@ -184,7 +199,7 @@ int main () {
     //camera.cameraPosition.y = trajetory.positions[0].y;
     glm::mat4 perspectiveMatrix = glm::perspective(glm::radians(45.0f), (float)g_gl_width / g_gl_height, 0.1f, 10000.0f);
 	glm::mat4 model_mat = glm::mat4(1.0f);
-    model_mat = glm::scale(model_mat, glm::vec3(0.2,0.2,0.2));
+    //model_mat = glm::scale(model_mat, glm::vec3(0.2,0.2,0.2));
 	
     GLfloat deltaTime = 0.0f;
     GLfloat lastFrame = 0.0f;
@@ -202,8 +217,12 @@ int main () {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDepthMask(GL_TRUE);
 
-    glUniformMatrix4fv(firstPassShader("projection_mat"), 1, GL_FALSE, glm::value_ptr(perspectiveMatrix));
-    
+    //glUniformMatrix4fv(firstPassShader("projection_mat"), 1, GL_FALSE, glm::value_ptr(perspectiveMatrix));
+    glUniformMatrix4fv(mapShader("projection_mat"), 1, GL_FALSE, glm::value_ptr(perspectiveMatrix));
+    //-30.057637, -51.171501
+    Map myMap(mapShader);
+    myMap.GetMapData(-30.057637, -51.171501);
+
 	while (!glfwWindowShouldClose (g_window)) {
 		
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -220,17 +239,29 @@ int main () {
         
 		_update_fps_counter (g_window);
 		
-        firstPassShader.Use();
+        
+        mapShader.Use();
+        glUniformMatrix4fv(mapShader("view_mat"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
+        glUniformMatrix4fv(mapShader("model_mat"), 1, GL_FALSE, glm::value_ptr(model_mat));
+        
+        glBindVertexArray(myMap.vertexArrayObject);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        
+        //firstPassShader.Use();
 
-		glPointSize(5);
+        //this doesnt seems to work on mac os
+		//glPointSize(5);
+//        glDisable(GL_LINE_SMOOTH);
+//        glEnable(GL_LINE_WIDTH);
+//        glLineWidth(10);
         
-        glUniformMatrix4fv(firstPassShader("view_mat"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
-        glUniformMatrix4fv(firstPassShader("model_mat"), 1, GL_FALSE, glm::value_ptr(model_mat));
+//        glUniformMatrix4fv(firstPassShader("view_mat"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
+//        glUniformMatrix4fv(firstPassShader("model_mat"), 1, GL_FALSE, glm::value_ptr(model_mat));
         
-        for(auto curTraj : TrajList){
-            glBindVertexArray (curTraj.vertexArrayObject);
-            glDrawArrays (GL_LINE_STRIP, 0, curTraj.positions.size());
-        }
+//        for(auto curTraj : TrajList){
+//            glBindVertexArray (curTraj.vertexArrayObject);
+//            glDrawArrays (GL_LINE_STRIP, 0, curTraj.positions.size());
+//        }
         
 
 
