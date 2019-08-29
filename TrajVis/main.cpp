@@ -126,6 +126,13 @@ void processs_keyboard(GLFWwindow *window, Camera *cam)
         cam->cameraPosition.y -= cam->cameraSpeed;
 }
 
+float cameraDistance(Camera *cam)
+{
+    //just vertical distance for zoom
+    return abs(cam->cameraPosition.y - TrajParser::basePosition.y);
+    
+}
+
 int main () {
 	assert (restart_gl_log ());
 /*------------------------------start GL context------------------------------*/
@@ -134,8 +141,10 @@ int main () {
     
     //camera.cameraPosition = TrajParser::basePosition;
     //camera.cameraPosition.z = 100;
-    //camera.cameraPosition.y = 500;
+    
     camera.cameraPosition = glm::vec3(0.0,0.0,0.0);
+    camera.cameraPosition.y = 1000;
+    
     camera.cameraFront = glm::vec3(0.0, 0.0, -1.0);
     camera.cameraUp = glm::vec3(0.0, 1.0, 0.0);
     camera.cameraSpeed = 10;
@@ -221,8 +230,14 @@ int main () {
     glUniformMatrix4fv(mapShader("projection_mat"), 1, GL_FALSE, glm::value_ptr(perspectiveMatrix));
     //-30.057637, -51.171501
     Map myMap(mapShader);
-    myMap.GetMapData(-30.057637, -51.171501);
+    float distance = cameraDistance(&camera);
+    float ratio = 1 / distance;
+    int zoom = (int)floor(5000 * ratio);
+    myMap.GetMapData(-30.057637, -51.171501,zoom);
 
+    
+    //if 1000 is default distance
+    
 	while (!glfwWindowShouldClose (g_window)) {
 		
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -273,6 +288,19 @@ int main () {
 /*-----------------------------move camera here-------------------------------*/
 		// control keys
         processs_keyboard(g_window, &camera);
+        
+        float curDistance = cameraDistance(&camera);
+        if(abs(distance-curDistance) > 100){
+            ratio = 1/curDistance;
+            int newZoom = (int)floor(5000 * ratio);
+            
+            //zoom = (int)floor(5000 * ratio);
+            if(newZoom != zoom){
+                myMap.GetMapData(-30.057637, -51.171501,zoom);
+                zoom = newZoom;
+            }
+            distance = curDistance;
+        }
 //
 //        if (GLFW_PRESS == glfwGetKey (g_window, GLFW_KEY_ESCAPE)) {
 //            glfwSetWindowShouldClose (g_window, 1);

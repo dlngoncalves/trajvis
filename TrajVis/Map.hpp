@@ -95,8 +95,8 @@ public:
     //that would require multiple vbos ?
     //create class tile
     std::map<std::string,Tile> tileData;
-    void GetMapData(float lat, float lon);
-    void LoadMap();
+    void GetMapData(float lat, float lon, int zoomLevel);
+    void LoadMap(float lat, float lon, int zoomLevel);
     unsigned char* image_data;
     GLuint textureID;
     static int long2tilex(double lon, int z);

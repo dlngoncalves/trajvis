@@ -16,6 +16,9 @@
 //"https://api.mapbox.com/v4/mapbox.satellite/1/0/0@2x.jpg90?access_token=pk.eyJ1Ijoic2Vub3JzcGFya2xlIiwiYSI6ImNqdXU4ODQ2NTBnMDk0ZG1obDA4bWUzbmUifQ.gviggw2S34VwFVxshcbj_A"
 //"https://api.mapbox.com/v4/mapbox.satellite/16/23451/38510@2x.jpg90?access_token=pk.eyJ1Ijoic2Vub3JzcGFya2xlIiwiYSI6ImNqdXU4ODQ2NTBnMDk0ZG1obDA4bWUzbmUifQ.gviggw2S34VwFVxshcbj_A
 
+std::string url = "https://api.mapbox.com/v4/mapbox.satellite/";
+std::string apikey = "?access_token=pk.eyJ1Ijoic2Vub3JzcGFya2xlIiwiYSI6ImNqdXU4ODQ2NTBnMDk0ZG1obDA4bWUzbmUifQ.gviggw2S34VwFVxshcbj_A";
+
 Map::Map(GLSLShader &shader) : myShader(shader)
 {
     SetupData();
@@ -45,6 +48,9 @@ void Map::SetupData()
 
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
+    
+    glActiveTexture(GL_TEXTURE0);
+    glGenTextures(1, &textureID);
 }
 
 //from https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#X_and_Y
@@ -70,26 +76,28 @@ static size_t WriteCallBack(void *contents, size_t size, size_t nmemb, void *use
     return written;
 };
 
-void Map::GetMapData(float lat, float lon)
+void Map::GetMapData(float lat, float lon, int zoomLevel)
 {
-    int x = long2tilex(lon, 16);
-    int y = lat2tiley(lat, 16);
+    int x = long2tilex(lon, zoomLevel);
+    int y = lat2tiley(lat, zoomLevel);
     
-    std::string url = "https://api.mapbox.com/v4/mapbox.satellite/16/";
+    //std::string url = "https://api.mapbox.com/v4/mapbox.satellite/16/";
+    std::string newUrl = url + to_string(zoomLevel) + "/";
+    
     std::string tile = to_string(x) + "/" + to_string(y) + "@2x.jpg90";
-    std::string apikey = "?access_token=pk.eyJ1Ijoic2Vub3JzcGFya2xlIiwiYSI6ImNqdXU4ODQ2NTBnMDk0ZG1obDA4bWUzbmUifQ.gviggw2S34VwFVxshcbj_A";
+    //std::string apikey = "?access_token=pk.eyJ1Ijoic2Vub3JzcGFya2xlIiwiYSI6ImNqdXU4ODQ2NTBnMDk0ZG1obDA4bWUzbmUifQ.gviggw2S34VwFVxshcbj_A";
 
-    url = url + tile + apikey;
+    newUrl = newUrl + tile + apikey;
     
     //for testing only
     //std::string url = "https://api.mapbox.com/v4/mapbox.satellite/16/23451/38510@2x.jpg90?access_token=pk.eyJ1Ijoic2Vub3JzcGFya2xlIiwiYSI6ImNqdXU4ODQ2NTBnMDk0ZG1obDA4bWUzbmUifQ.gviggw2S34VwFVxshcbj_A";
     
-    std::string fileName = to_string(lat) + to_string(lon) + ".jpg";
+    std::string fileName = to_string(lat) + to_string(lon) + to_string(zoomLevel) + ".jpg";
     FILE *image = std::fopen(fileName.c_str(), "wb");
     CURL *handle = curl_easy_init();
     if(handle){
         CURLcode res;
-        curl_easy_setopt(handle, CURLOPT_URL,url.c_str());
+        curl_easy_setopt(handle, CURLOPT_URL,newUrl.c_str());
         curl_easy_setopt(handle,CURLOPT_WRITEDATA,image);
         curl_easy_setopt(handle,CURLOPT_WRITEFUNCTION,WriteCallBack);
         res = curl_easy_perform(handle);
@@ -101,9 +109,11 @@ void Map::GetMapData(float lat, float lon)
     image_data = stbi_load(fileName.c_str(), &ximg, &yimg, &n, force_channels);
     
     glActiveTexture(GL_TEXTURE0);
-    glGenTextures(1, &textureID);
+    //glGenTextures(1, &textureID);
     glBindTexture(GL_TEXTURE_2D, textureID);
     glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,ximg,yimg,0,GL_RGBA,GL_UNSIGNED_BYTE,image_data);
+    
+    //glTexSubImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, ximg, yimg, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
     glGenerateMipmap(GL_TEXTURE_2D);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -111,9 +121,9 @@ void Map::GetMapData(float lat, float lon)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 }
 
-void Map::LoadMap()
+void Map::LoadMap(float lat, float lon, int zoomLevel)
 {
-    
+    //will use this just to download the data
 }
 
 
