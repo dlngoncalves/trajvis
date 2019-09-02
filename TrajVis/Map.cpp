@@ -76,6 +76,7 @@ static size_t WriteCallBack(void *contents, size_t size, size_t nmemb, void *use
     return written;
 };
 
+//could just preemptively load all zoom levels and store in 3d texture
 void Map::GetMapData(float lat, float lon, int zoomLevel)
 {
     int x = long2tilex(lon, zoomLevel);

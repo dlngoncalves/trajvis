@@ -231,8 +231,13 @@ int main () {
     //-30.057637, -51.171501
     Map myMap(mapShader);
     float distance = cameraDistance(&camera);
-    float ratio = 1 / distance;
-    int zoom = (int)floor(5000 * ratio);
+    float ratio; //= 1 / distance;
+    //10*(1-(00/1000))
+    
+    ratio = 1-(distance/1000);
+    //int zoom = (int)floor(5000 * ratio);
+    int zoom = (10*ratio) + 5;
+    
     myMap.GetMapData(-30.057637, -51.171501,zoom);
 
     
@@ -291,12 +296,13 @@ int main () {
         
         float curDistance = cameraDistance(&camera);
         if(abs(distance-curDistance) > 100){
-            ratio = 1/curDistance;
-            int newZoom = (int)floor(5000 * ratio);
-            
+            //ratio = 1/curDistance;
+            ratio = 1-(round(curDistance)/1000);
+            //int newZoom = (int)floor(5000 * ratio);
+            int newZoom = int(floor((10*ratio) + 5));
             //zoom = (int)floor(5000 * ratio);
             if(newZoom != zoom){
-                myMap.GetMapData(-30.057637, -51.171501,zoom);
+                myMap.GetMapData(-30.057637, -51.171501,newZoom);
                 zoom = newZoom;
             }
             distance = curDistance;
