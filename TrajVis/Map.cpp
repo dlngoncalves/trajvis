@@ -10,8 +10,8 @@
 #include <curl/curl.h>
 #include <math.h>
 #include "stb_image.h"
-
-
+#include <iostream>
+#include <glm/gtc/matrix_transform.hpp>
 //mapbox exemple queries
 //"https://api.mapbox.com/v4/mapbox.satellite/1/0/0@2x.jpg90?access_token=pk.eyJ1Ijoic2Vub3JzcGFya2xlIiwiYSI6ImNqdXU4ODQ2NTBnMDk0ZG1obDA4bWUzbmUifQ.gviggw2S34VwFVxshcbj_A"
 //"https://api.mapbox.com/v4/mapbox.satellite/16/23451/38510@2x.jpg90?access_token=pk.eyJ1Ijoic2Vub3JzcGFya2xlIiwiYSI6ImNqdXU4ODQ2NTBnMDk0ZG1obDA4bWUzbmUifQ.gviggw2S34VwFVxshcbj_A
@@ -19,9 +19,74 @@
 std::string url = "https://api.mapbox.com/v4/mapbox.satellite/";
 std::string apikey = "?access_token=pk.eyJ1Ijoic2Vub3JzcGFya2xlIiwiYSI6ImNqdXU4ODQ2NTBnMDk0ZG1obDA4bWUzbmUifQ.gviggw2S34VwFVxshcbj_A";
 
-Map::Map(GLSLShader &shader) : myShader(shader)
+//might make sense to recalculate lat/lon from tile position
+Map::Map(float newLat, float newLon, int zoom, GLSLShader &shader) : myShader(shader)
+//Map::Map(GLSLShader &shader) : myShader(shader)
 {
-    SetupData();
+    //why not initialization list?
+    lat = newLat;
+    lon = newLon;
+    curZoom = zoom;
+    
+    xCenter = long2tilex(lon, curZoom);
+    yCenter = lat2tiley(lat, curZoom);
+    
+    //SetupData();
+    
+    //00 01 02
+    //10 11 12
+    //20 21 22
+    
+    //have to remember that center is not 0,0
+    for(int i = 0; i < TILEMAP_SIZE ; i++){
+        for(int j = 0; j < TILEMAP_SIZE; j++){
+            tileMap[i][j].SetupData();
+            tileMap[i][j].GetMapData(xCenter, yCenter, curZoom);
+            tileMap[i][j].modelMatrix = glm::translate(glm::mat4(1.0), glm::vec3(i*200,0,j*200));
+        }
+    }
+    //need to get the texture data based on the tile not coord
+    //testTile.SetupData();
+    //testTile.GetMapData(xCenter, yCenter, curZoom);
+    //should also set the tiles modelmatrices here
+}
+
+//could generate one texture buffer per tile and change the buffer instead of the data inside the buffer?
+
+void Tile::SetupData()
+{
+    //this works but we should look into abstracting away from the trajectory code the opengl stuff
+    glGenBuffers(1, &vertexBufferObject);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
+    //not sure if should use glm data pointer or vector data pointer
+    glBufferData(GL_ARRAY_BUFFER, 3*6*sizeof(float), mapSurface, GL_STATIC_DRAW);
+    
+    glGenBuffers(1, &textureBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, textureBuffer);
+    //not sure if should use glm data pointer or vector data pointer
+    glBufferData(GL_ARRAY_BUFFER, 2*6*sizeof(float), mapUV, GL_STATIC_DRAW);
+    
+    glGenVertexArrays(1, &vertexArrayObject);
+    glBindVertexArray(vertexArrayObject);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0 ,NULL );
+    
+    glBindBuffer(GL_ARRAY_BUFFER, textureBuffer);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0 , NULL);
+    
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    
+    glActiveTexture(GL_TEXTURE0);
+    glGenTextures(1, &textureID);
+    
+    //there are two separate things to track
+    //the modelmatrix/position for each tile
+    //and which texture it currently maps to
+    //but the tile map slippy name is not static
+    //but we can consider static the tile position
+    //modelMatrix = glm::translate(glm::mat4(1.0),glm::vec3)
 }
 
 void Map::SetupData()
@@ -76,12 +141,68 @@ static size_t WriteCallBack(void *contents, size_t size, size_t nmemb, void *use
     return written;
 };
 
+//this could be usefull to reload the tiles on zoom in/out
+void Map::FillMapTiles()
+{
+    //this assumes the position is already set
+    for(int i = 0; i < 3; i++){
+        for(int j = 0; j < 3; j++){
+            //tileMap[i][j].GetMapData();
+        }
+    }
+}
+
+//maybe rename get map texture ?
+//i guess the map is really the tiles texture
+void Tile::GetMapData(int x, int y, int zoom)
+{
+    std::string newUrl = url + to_string(zoom) + "/";
+    std::string tile = to_string(x) + "/" + to_string(y) + "@2x.jpg90";
+    newUrl = newUrl + tile + apikey;
+    
+    std::string fileName = to_string(x) + "-" + to_string(y) + "-" + to_string(zoom) + ".jpg";
+    
+    FILE *image = std::fopen(fileName.c_str(), "rb");
+    
+    if(image == NULL){
+        image = std::fopen(fileName.c_str(), "wb");
+        CURL *handle = curl_easy_init();
+        if(handle){
+            CURLcode res;
+            curl_easy_setopt(handle, CURLOPT_URL,newUrl.c_str());
+            curl_easy_setopt(handle,CURLOPT_WRITEDATA,image);
+            curl_easy_setopt(handle,CURLOPT_WRITEFUNCTION,WriteCallBack);
+            res = curl_easy_perform(handle);
+        }
+    }
+    std::fclose(image);
+    
+    int ximg,yimg,n;
+    int force_channels = 4;
+    image_data = stbi_load(fileName.c_str(), &ximg, &yimg, &n, force_channels);
+    
+    glActiveTexture(GL_TEXTURE0);
+    //glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,ximg,yimg,0,GL_RGBA,GL_UNSIGNED_BYTE,image_data);
+    
+    //glTexSubImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, ximg, yimg, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+}
+
+
 //could just preemptively load all zoom levels and store in 3d texture
+//that would be for each tile
 void Map::GetMapData(float lat, float lon, int zoomLevel)
 {
     int x = long2tilex(lon, zoomLevel);
     int y = lat2tiley(lat, zoomLevel);
     
+    std::cout << "x: " << to_string(x) << " y: " << to_string(y) << " zoom: " << to_string(zoomLevel) << "\n";
     //std::string url = "https://api.mapbox.com/v4/mapbox.satellite/16/";
     std::string newUrl = url + to_string(zoomLevel) + "/";
     
@@ -93,15 +214,23 @@ void Map::GetMapData(float lat, float lon, int zoomLevel)
     //for testing only
     //std::string url = "https://api.mapbox.com/v4/mapbox.satellite/16/23451/38510@2x.jpg90?access_token=pk.eyJ1Ijoic2Vub3JzcGFya2xlIiwiYSI6ImNqdXU4ODQ2NTBnMDk0ZG1obDA4bWUzbmUifQ.gviggw2S34VwFVxshcbj_A";
     
-    std::string fileName = to_string(lat) + to_string(lon) + to_string(zoomLevel) + ".jpg";
-    FILE *image = std::fopen(fileName.c_str(), "wb");
-    CURL *handle = curl_easy_init();
-    if(handle){
-        CURLcode res;
-        curl_easy_setopt(handle, CURLOPT_URL,newUrl.c_str());
-        curl_easy_setopt(handle,CURLOPT_WRITEDATA,image);
-        curl_easy_setopt(handle,CURLOPT_WRITEFUNCTION,WriteCallBack);
-        res = curl_easy_perform(handle);
+    //filename should be the tiles not lat lon
+    //std::string fileName = to_string(lat) + to_string(lon) + to_string(zoomLevel) + ".jpg";
+    
+    std::string fileName = to_string(x) + "-" + to_string(y) + "-" + to_string(zoomLevel) + ".jpg";
+    
+    FILE *image = std::fopen(fileName.c_str(), "rb");
+    
+    if(image == NULL){
+        image = std::fopen(fileName.c_str(), "wb");
+        CURL *handle = curl_easy_init();
+        if(handle){
+            CURLcode res;
+            curl_easy_setopt(handle, CURLOPT_URL,newUrl.c_str());
+            curl_easy_setopt(handle,CURLOPT_WRITEDATA,image);
+            curl_easy_setopt(handle,CURLOPT_WRITEFUNCTION,WriteCallBack);
+            res = curl_easy_perform(handle);
+        }
     }
     std::fclose(image);
     
@@ -127,6 +256,14 @@ void Map::LoadMap(float lat, float lon, int zoomLevel)
     //will use this just to download the data
 }
 
+//how should I structure this
+//create map with coordinates - lat/lon are a property of the whole map
+//not of the tiles
+//load the map centered on the tile we want and get the ones around
+//but still doesnt solve the issue with centrality of the point
+
+//use a bounding box?
+//goes well with the quadtree if we are storing all zoom levels
 
 Map::~Map()
 {

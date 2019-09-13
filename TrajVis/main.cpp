@@ -229,7 +229,7 @@ int main () {
     //glUniformMatrix4fv(firstPassShader("projection_mat"), 1, GL_FALSE, glm::value_ptr(perspectiveMatrix));
     glUniformMatrix4fv(mapShader("projection_mat"), 1, GL_FALSE, glm::value_ptr(perspectiveMatrix));
     //-30.057637, -51.171501
-    Map myMap(mapShader);
+    
     float distance = cameraDistance(&camera);
     float ratio; //= 1 / distance;
     //10*(1-(00/1000))
@@ -238,7 +238,8 @@ int main () {
     //int zoom = (int)floor(5000 * ratio);
     int zoom = (10*ratio) + 5;
     
-    myMap.GetMapData(-30.057637, -51.171501,zoom);
+    Map myMap(-30.057637, -51.171501,zoom,mapShader);
+    //myMap.GetMapData(-30.057637, -51.171501,zoom);
 
     
     //if 1000 is default distance
@@ -264,8 +265,37 @@ int main () {
         glUniformMatrix4fv(mapShader("view_mat"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
         glUniformMatrix4fv(mapShader("model_mat"), 1, GL_FALSE, glm::value_ptr(model_mat));
         
-        glBindVertexArray(myMap.vertexArrayObject);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        //for each tile
+        //draw arrays -- but would make sense to
+        
+//        for(auto &curTile : myMap.tiles){
+//                //curTile.
+//        }
+//
+//        for(auto &curTile : myMap.tileData){
+//            glBindVertexArray(curTile.second.vertexArrayObject);
+//
+//            glDrawArrays(GL_TRIANGLES, 0, 6);//this is default for a square
+//            //actually modelmatrix should probably be tile based
+//
+//            //curTile.second.
+//
+//            //glBindVertexArray()
+//        }
+        
+        //this one vao and rebinding everything and one draw call per tile is not very efficient but will stay for now
+        for(int i = 0; i < TILEMAP_SIZE; i++){
+            for(int j = 0; j < TILEMAP_SIZE; j++){
+                glUniformMatrix4fv(mapShader("model_mat"), 1, GL_FALSE, glm::value_ptr(myMap.tileMap[i][j].modelMatrix));
+                glBindVertexArray(myMap.tileMap[i][j].vertexArrayObject);
+                glDrawArrays(GL_TRIANGLES, 0, 6);
+                //tileMap[i][j].SetupData();
+                //tileMap[i][j].GetMapData(xCenter, yCenter, curZoom);
+                //tileMap[i][j].modelMatrix = glm::translate(glm::mat4(1.0), glm::vec3(i*100,0,j*100));
+            }
+        }
+        //glBindVertexArray(myMap.vertexArrayObject);
+        //glDrawArrays(GL_TRIANGLES, 0, 6);
         
         //firstPassShader.Use();
 
@@ -278,6 +308,7 @@ int main () {
 //        glUniformMatrix4fv(firstPassShader("view_mat"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
 //        glUniformMatrix4fv(firstPassShader("model_mat"), 1, GL_FALSE, glm::value_ptr(model_mat));
         
+        //shouldn this be an auto &?
 //        for(auto curTraj : TrajList){
 //            glBindVertexArray (curTraj.vertexArrayObject);
 //            glDrawArrays (GL_LINE_STRIP, 0, curTraj.positions.size());
@@ -302,7 +333,7 @@ int main () {
             int newZoom = int(floor((10*ratio) + 5));
             //zoom = (int)floor(5000 * ratio);
             if(newZoom != zoom){
-                myMap.GetMapData(-30.057637, -51.171501,newZoom);
+                //myMap.GetMapData(-30.057637, -51.171501,newZoom);
                 zoom = newZoom;
             }
             distance = curDistance;
