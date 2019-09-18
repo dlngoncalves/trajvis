@@ -107,6 +107,7 @@ void processs_keyboard(GLFWwindow *window, Camera *cam)
         glfwSetWindowShouldClose (window, 1);
     }
     
+    //this is a perfectly fine camera movement system but I think for sliding along the map I might need something else
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_W))
         cam->cameraPosition += cam->cameraSpeed * cam->cameraFront;
     
@@ -141,6 +142,11 @@ int main () {
     
     //camera.cameraPosition = TrajParser::basePosition;
     //camera.cameraPosition.z = 100;
+    
+    //a couple of things that need to be done regarding the camera
+    //we need to map the camera position to the position of the map in lat/lon
+    //this is relatively easy, but always centering the map on the exact point is harder
+    //and the map and the trajectories need to be in the same system
     
     camera.cameraPosition = glm::vec3(0.0,0.0,0.0);
     camera.cameraPosition.y = 1000;
@@ -238,9 +244,14 @@ int main () {
     //int zoom = (int)floor(5000 * ratio);
     int zoom = (10*ratio) + 5;
     
+    //this is still static
+    //will need to use the calculation from lat/lon to our coordinate system and then update map when camera moves
+    //also would make sense to treat the map sort of a 1 plane skybox
+    //but the textures change based on position/distance - it just stays static with relation to the camera
+    
     Map myMap(-30.057637, -51.171501,zoom,mapShader);
     //myMap.GetMapData(-30.057637, -51.171501,zoom);
-
+    //myMap.GetLocation();
     
     //if 1000 is default distance
     
@@ -287,6 +298,7 @@ int main () {
         for(int i = 0; i < TILEMAP_SIZE; i++){
             for(int j = 0; j < TILEMAP_SIZE; j++){
                 glUniformMatrix4fv(mapShader("model_mat"), 1, GL_FALSE, glm::value_ptr(myMap.tileMap[i][j].modelMatrix));
+                glBindTexture(GL_TEXTURE_2D, myMap.tileMap[i][j].textureID);
                 glBindVertexArray(myMap.tileMap[i][j].vertexArrayObject);
                 glDrawArrays(GL_TRIANGLES, 0, 6);
                 //tileMap[i][j].SetupData();
@@ -335,9 +347,13 @@ int main () {
             if(newZoom != zoom){
                 //myMap.GetMapData(-30.057637, -51.171501,newZoom);
                 zoom = newZoom;
+                myMap.curZoom = zoom;
+                myMap.FillMapTiles();
             }
             distance = curDistance;
         }
+        
+        std::cout << to_string(camera.cameraPosition.x) << " " << to_string(camera.cameraPosition.z) << "\n";
 //
 //        if (GLFW_PRESS == glfwGetKey (g_window, GLFW_KEY_ESCAPE)) {
 //            glfwSetWindowShouldClose (g_window, 1);

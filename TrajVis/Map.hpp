@@ -15,7 +15,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 
-#define TILEMAP_SIZE 100
+#define TILEMAP_SIZE 3
 //class or struct?
 struct Tile
 {
@@ -37,12 +37,20 @@ struct Tile
         1.0f,1.0f,
         0.0f,0.0f,
         0.0f,1.0f
+        
+//        0.0f,1.0f,
+//        0.0f,0.0f,
+//        1.0f,1.0f,
+//
+//        1.0f,1.0f,
+//        0.0f,0.0f,
+//        1.0f,0.0f
     };
     void SetupData();
     
     //void GetMapData(float lat, float lon, int zoomLevel);
-    
-    void GetMapData(int x, int y, int zoom);
+    //bad names because the second xy pair refers to the curent tiles position on the grid, not to the texture
+    void GetMapData(int x, int y, int curX, int curY, int zoom);
     
     GLuint vertexBufferObject;
     GLuint textureBuffer;
@@ -72,12 +80,21 @@ public:
     };
     
     float mapUV[12]{
-        1.0f,0.0f,
+        0.0f,1.0f,
         0.0f,0.0f,
         1.0f,1.0f,
+        
         1.0f,1.0f,
         0.0f,0.0f,
-        0.0f,1.0f
+        1.0f,0.0f
+        
+//        1.0f,0.0f,
+//        0.0f,0.0f,
+//        1.0f,1.0f,
+//
+//        1.0f,1.0f,
+//        0.0f,0.0f,
+//        0.0f,1.0f
     };
     
     GLSLShader &myShader;
@@ -122,9 +139,10 @@ public:
     
     void GetTile(int x, int y, int zoom);
     
-    void FillMapTiles();
+    void GetLocation();
     
-    //probably wont need this
+    //will use one of these to redraw the entire tilemap
+    void FillMapTiles();
     void DrawTiles();
 };
 

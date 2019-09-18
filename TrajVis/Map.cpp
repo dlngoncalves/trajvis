@@ -8,6 +8,7 @@
 #define GL_SILENCE_DEPRECATION
 #include "Map.hpp"
 #include <curl/curl.h>
+#include "nlohmann/json.hpp"
 #include <math.h>
 #include "stb_image.h"
 #include <iostream>
@@ -18,6 +19,8 @@
 
 std::string url = "https://api.mapbox.com/v4/mapbox.satellite/";
 std::string apikey = "?access_token=pk.eyJ1Ijoic2Vub3JzcGFya2xlIiwiYSI6ImNqdXU4ODQ2NTBnMDk0ZG1obDA4bWUzbmUifQ.gviggw2S34VwFVxshcbj_A";
+
+using json = nlohmann::json;
 
 //might make sense to recalculate lat/lon from tile position
 Map::Map(float newLat, float newLon, int zoom, GLSLShader &shader) : myShader(shader)
@@ -38,11 +41,13 @@ Map::Map(float newLat, float newLon, int zoom, GLSLShader &shader) : myShader(sh
     //20 21 22
     
     //have to remember that center is not 0,0
+    
     for(int i = 0; i < TILEMAP_SIZE ; i++){
         for(int j = 0; j < TILEMAP_SIZE; j++){
             tileMap[i][j].SetupData();
-            tileMap[i][j].GetMapData(xCenter, yCenter, curZoom);
-            tileMap[i][j].modelMatrix = glm::translate(glm::mat4(1.0), glm::vec3(i*200,0,j*200));
+            //should pass the center and the current position as an offset
+            tileMap[i][j].GetMapData(xCenter, yCenter,i,j, curZoom);
+            tileMap[i][j].modelMatrix = glm::translate(glm::mat4(1.0), glm::vec3(j*200,0,TILEMAP_SIZE-i*200));
         }
     }
     //need to get the texture data based on the tile not coord
@@ -141,26 +146,44 @@ static size_t WriteCallBack(void *contents, size_t size, size_t nmemb, void *use
     return written;
 };
 
+static size_t WriteCallBackLocation(void *contents, size_t size, size_t nmemb, void *userp)
+{
+    ((std::string*)userp)->append((char*)contents,size*nmemb);
+    return size*nmemb;
+};
+
 //this could be usefull to reload the tiles on zoom in/out
 void Map::FillMapTiles()
 {
-    //this assumes the position is already set
-    for(int i = 0; i < 3; i++){
-        for(int j = 0; j < 3; j++){
-            //tileMap[i][j].GetMapData();
+    
+    xCenter = long2tilex(lon, curZoom);
+    yCenter = lat2tiley(lat, curZoom);
+    
+    for(int i = 0; i < TILEMAP_SIZE; i++){
+        for(int j = 0; j < TILEMAP_SIZE; j++){
+            tileMap[i][j].GetMapData(xCenter, yCenter,i,j, curZoom);
         }
     }
 }
 
 //maybe rename get map texture ?
 //i guess the map is really the tiles texture
-void Tile::GetMapData(int x, int y, int zoom)
+void Tile::GetMapData(int x, int y, int curX, int curY, int zoom)
 {
+    
+    //we assume the grid is odd x odd
+    int tileCenter = (int)floor(TILEMAP_SIZE/2);
+
+    //dont need to be abs because we can subtract
+    int xOffset = curX - tileCenter;
+    int yOffset = curY - tileCenter;
+    
+    
     std::string newUrl = url + to_string(zoom) + "/";
-    std::string tile = to_string(x) + "/" + to_string(y) + "@2x.jpg90";
+    std::string tile = to_string(x+xOffset) + "/" + to_string(y+yOffset) + "@2x.jpg90";
     newUrl = newUrl + tile + apikey;
     
-    std::string fileName = to_string(x) + "-" + to_string(y) + "-" + to_string(zoom) + ".jpg";
+    std::string fileName = to_string(x+xOffset) + "-" + to_string(y+yOffset) + "-" + to_string(zoom) + ".jpg";
     
     FILE *image = std::fopen(fileName.c_str(), "rb");
     
@@ -249,6 +272,28 @@ void Map::GetMapData(float lat, float lon, int zoomLevel)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+}
+
+void Map::GetLocation()
+{
+    //at this point should probably have a wrapper for curl stuff
+    std::string url =  "https://freegeoip.app/json/";
+    std::string responseBuffer;
+    CURL *handle = curl_easy_init();
+    if(handle){
+        CURLcode res;
+        curl_easy_setopt(handle, CURLOPT_URL,url.c_str());
+        curl_easy_setopt(handle,CURLOPT_WRITEFUNCTION,WriteCallBackLocation);
+        curl_easy_setopt(handle,CURLOPT_WRITEDATA,&responseBuffer);
+        res = curl_easy_perform(handle);
+    }
+    //wonder what happens when we dont receive the location
+    json locationObj = json::parse(responseBuffer);
+    float latitude =  locationObj["latitude"].get<float>();
+    float longitude = locationObj["longitude"].get<float>();
+    
+    lat = latitude;
+    lon = longitude;
 }
 
 void Map::LoadMap(float lat, float lon, int zoomLevel)
