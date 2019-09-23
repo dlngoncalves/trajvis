@@ -46,8 +46,15 @@ Map::Map(float newLat, float newLon, int zoom, GLSLShader &shader) : myShader(sh
         for(int j = 0; j < TILEMAP_SIZE; j++){
             tileMap[i][j].SetupData();
             //should pass the center and the current position as an offset
+            
+            int tileCenter = (int)floor(TILEMAP_SIZE/2);
+            
+            //dont need to be abs because we can subtract
+            int xOffset = i - tileCenter;
+            int yOffset = j - tileCenter;
+            
             tileMap[i][j].GetMapData(xCenter, yCenter,i,j, curZoom);
-            tileMap[i][j].modelMatrix = glm::translate(glm::mat4(1.0), glm::vec3(j*200,0,TILEMAP_SIZE-i*200));
+            tileMap[i][j].modelMatrix = glm::translate(glm::mat4(1.0), glm::vec3((j+1)*200,0,TILEMAP_SIZE-i*200));
         }
     }
     //need to get the texture data based on the tile not coord
@@ -133,6 +140,17 @@ int Map::lat2tiley(double lat, int z)
 {
     double latrad = lat * M_PI/180.0;
     return (int)(floor((1.0 - asinh(tan(latrad)) / M_PI) / 2.0 * (1 << z)));
+}
+
+double Map::tilex2long(int x, int z)
+{
+    return x / (double)(1 << z) * 360.0 - 180;
+}
+
+double Map::tiley2lat(int y, int z)
+{
+    double n = M_PI - 2.0 * M_PI * y / (double)(1 << z);
+    return 180.0 / M_PI * atan(0.5 * (exp(n) - exp(-n)));
 }
 
 static size_t WriteCallBack(void *contents, size_t size, size_t nmemb, void *userp)

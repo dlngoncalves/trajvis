@@ -70,6 +70,10 @@ struct shader_traj_point
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
+
+    //what is happening is that when we use mouse look the camerafront vector is changed and that changes the camera position
+    //in ways that make it not be in what we assumed to be world space anymore
+    //need to store some world position or the view matrix
     if (firstMouse)
     {
         lastx = xpos;
@@ -99,14 +103,18 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     front.y = sin(glm::radians(camera.pitch));
     front.z = cos(glm::radians(camera.pitch)) * sin(glm::radians(camera.yaw));
     camera.cameraFront = glm::normalize(front);
+    
+    //updating up camera - should keep right vector in camera class
+    glm::vec3 right = glm::normalize(glm::cross(camera.cameraFront,glm::vec3(0.0,1.0,0.0)));
+    camera.cameraUp = glm::normalize(glm::cross(right,camera.cameraFront));
 }
-
+//need to look again into the camera system
 void processs_keyboard(GLFWwindow *window, Camera *cam)
 {
     if (GLFW_PRESS == glfwGetKey (window, GLFW_KEY_ESCAPE)) {
         glfwSetWindowShouldClose (window, 1);
     }
-    
+    //multiplying by the front vector changes the position in weird ways
     //this is a perfectly fine camera movement system but I think for sliding along the map I might need something else
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_W))
         cam->cameraPosition += cam->cameraSpeed * cam->cameraFront;
@@ -125,6 +133,7 @@ void processs_keyboard(GLFWwindow *window, Camera *cam)
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_J))
         cam->cameraPosition.y -= cam->cameraSpeed;
+    
 }
 
 float cameraDistance(Camera *cam)
@@ -140,7 +149,7 @@ int main () {
 	assert (start_gl ());
 
     
-    //camera.cameraPosition = TrajParser::basePosition;
+    camera.cameraPosition = TrajParser::basePosition;
     //camera.cameraPosition.z = 100;
     
     //a couple of things that need to be done regarding the camera
@@ -148,7 +157,7 @@ int main () {
     //this is relatively easy, but always centering the map on the exact point is harder
     //and the map and the trajectories need to be in the same system
     
-    camera.cameraPosition = glm::vec3(0.0,0.0,0.0);
+    //camera.cameraPosition = glm::vec3(0.0,0.0,0.0);
     camera.cameraPosition.y = 1000;
     
     camera.cameraFront = glm::vec3(0.0, 0.0, -1.0);
@@ -160,14 +169,14 @@ int main () {
     //for now using the first pass shader as the trajectory rendering one
     
     
-//    GLSLShader firstPassShader;
-//    firstPassShader.LoadFromFile(GL_VERTEX_SHADER, "vert.glsl");
-//    firstPassShader.LoadFromFile(GL_FRAGMENT_SHADER, "frag.glsl");
-//    firstPassShader.CreateAndLinkProgram();
-//    firstPassShader.Use();
-//    firstPassShader.AddUniform("view_mat");
-//    firstPassShader.AddUniform("projection_mat");
-//    firstPassShader.AddUniform("model_mat");
+    GLSLShader firstPassShader;
+    firstPassShader.LoadFromFile(GL_VERTEX_SHADER, "vert.glsl");
+    firstPassShader.LoadFromFile(GL_FRAGMENT_SHADER, "frag.glsl");
+    firstPassShader.CreateAndLinkProgram();
+    firstPassShader.Use();
+    firstPassShader.AddUniform("view_mat");
+    firstPassShader.AddUniform("projection_mat");
+    firstPassShader.AddUniform("model_mat");
     
     
     GLSLShader mapShader;
@@ -204,8 +213,10 @@ int main () {
 //    TrajParser trajetory3("trajectories/walk_17.csv",firstPassShader);
 //    TrajParser trajetory4("trajectories/walk_20.csv",firstPassShader);
     
-    //std::vector<TrajParser> TrajList = TrajParser::LoadTrajDescription("trajectories/trajectories.txt",firstPassShader);
+    std::vector<TrajParser> TrajList = TrajParser::LoadTrajDescription("trajectories/trajectories2.txt",firstPassShader);
     
+    camera.cameraPosition = TrajParser::basePosition;
+    camera.cameraPosition.y = 500;
 //    TrajList.push_back(trajetory);
 //    TrajList.push_back(trajetory2);
 //    TrajList.push_back(trajetory3);
@@ -309,7 +320,7 @@ int main () {
         //glBindVertexArray(myMap.vertexArrayObject);
         //glDrawArrays(GL_TRIANGLES, 0, 6);
         
-        //firstPassShader.Use();
+        firstPassShader.Use();
 
         //this doesnt seems to work on mac os
 		//glPointSize(5);
@@ -317,14 +328,14 @@ int main () {
 //        glEnable(GL_LINE_WIDTH);
 //        glLineWidth(10);
         
-//        glUniformMatrix4fv(firstPassShader("view_mat"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
-//        glUniformMatrix4fv(firstPassShader("model_mat"), 1, GL_FALSE, glm::value_ptr(model_mat));
+        glUniformMatrix4fv(firstPassShader("view_mat"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
+        glUniformMatrix4fv(firstPassShader("model_mat"), 1, GL_FALSE, glm::value_ptr(model_mat));
         
         //shouldn this be an auto &?
-//        for(auto curTraj : TrajList){
-//            glBindVertexArray (curTraj.vertexArrayObject);
-//            glDrawArrays (GL_LINE_STRIP, 0, curTraj.positions.size());
-//        }
+        for(auto curTraj : TrajList){
+            glBindVertexArray (curTraj.vertexArrayObject);
+            glDrawArrays (GL_LINE_STRIP, 0, curTraj.positions.size());
+        }
         
 
 
@@ -353,7 +364,9 @@ int main () {
             distance = curDistance;
         }
         
-        std::cout << to_string(camera.cameraPosition.x) << " " << to_string(camera.cameraPosition.z) << "\n";
+        //for testing the position
+        //std::cout << to_string(cameramatrix[3][0]) << " " << to_string(cameramatrix[3][1])<< " " << to_string(cameramatrix[3][2]) << "\n";
+        
 //
 //        if (GLFW_PRESS == glfwGetKey (g_window, GLFW_KEY_ESCAPE)) {
 //            glfwSetWindowShouldClose (g_window, 1);
