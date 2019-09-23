@@ -177,7 +177,7 @@ int main () {
     firstPassShader.AddUniform("view_mat");
     firstPassShader.AddUniform("projection_mat");
     firstPassShader.AddUniform("model_mat");
-    
+    firstPassShader.UnUse();
     
     GLSLShader mapShader;
     mapShader.LoadFromFile(GL_VERTEX_SHADER, "map_vs.glsl");
@@ -187,7 +187,7 @@ int main () {
     mapShader.AddUniform("view_mat");
     mapShader.AddUniform("projection_mat");
     mapShader.AddUniform("model_mat");
-    
+    mapShader.UnUse();
     
     glfwSetCursorPosCallback(g_window, mouse_callback);
     glfwSetInputMode(g_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -215,8 +215,7 @@ int main () {
     
     std::vector<TrajParser> TrajList = TrajParser::LoadTrajDescription("trajectories/trajectories2.txt",firstPassShader);
     
-    camera.cameraPosition = TrajParser::basePosition;
-    camera.cameraPosition.y = 500;
+    
 //    TrajList.push_back(trajetory);
 //    TrajList.push_back(trajetory2);
 //    TrajList.push_back(trajetory3);
@@ -225,7 +224,7 @@ int main () {
     //camera.cameraPosition.y = trajetory.positions[0].y;
     glm::mat4 perspectiveMatrix = glm::perspective(glm::radians(45.0f), (float)g_gl_width / g_gl_height, 0.1f, 10000.0f);
 	glm::mat4 model_mat = glm::mat4(1.0f);
-    //model_mat = glm::scale(model_mat, glm::vec3(0.2,0.2,0.2));
+    model_mat = glm::scale(model_mat, glm::vec3(0.2,0.2,0.2));
 	
     GLfloat deltaTime = 0.0f;
     GLfloat lastFrame = 0.0f;
@@ -243,7 +242,9 @@ int main () {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDepthMask(GL_TRUE);
 
-    //glUniformMatrix4fv(firstPassShader("projection_mat"), 1, GL_FALSE, glm::value_ptr(perspectiveMatrix));
+    firstPassShader.Use();
+    glUniformMatrix4fv(firstPassShader("projection_mat"), 1, GL_FALSE, glm::value_ptr(perspectiveMatrix));
+    mapShader.Use();
     glUniformMatrix4fv(mapShader("projection_mat"), 1, GL_FALSE, glm::value_ptr(perspectiveMatrix));
     //-30.057637, -51.171501
     
