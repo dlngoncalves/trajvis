@@ -31,6 +31,7 @@
 #include <string>
 #include <curl/curl.h>
 #include <sqlite3.h>
+#include <Map.hpp>
 
 #define GL_LOG_FILE "gl.log"
 #define NUM_WAVES 5
@@ -69,6 +70,10 @@ struct shader_traj_point
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
+
+    //what is happening is that when we use mouse look the camerafront vector is changed and that changes the camera position
+    //in ways that make it not be in what we assumed to be world space anymore
+    //need to store some world position or the view matrix
     if (firstMouse)
     {
         lastx = xpos;
@@ -98,14 +103,19 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     front.y = sin(glm::radians(camera.pitch));
     front.z = cos(glm::radians(camera.pitch)) * sin(glm::radians(camera.yaw));
     camera.cameraFront = glm::normalize(front);
+    
+    //updating up camera - should keep right vector in camera class
+    glm::vec3 right = glm::normalize(glm::cross(camera.cameraFront,glm::vec3(0.0,1.0,0.0)));
+    camera.cameraUp = glm::normalize(glm::cross(right,camera.cameraFront));
 }
-
+//need to look again into the camera system
 void processs_keyboard(GLFWwindow *window, Camera *cam)
 {
     if (GLFW_PRESS == glfwGetKey (window, GLFW_KEY_ESCAPE)) {
         glfwSetWindowShouldClose (window, 1);
     }
-    
+    //multiplying by the front vector changes the position in weird ways
+    //this is a perfectly fine camera movement system but I think for sliding along the map I might need something else
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_W))
         cam->cameraPosition += cam->cameraSpeed * cam->cameraFront;
     
@@ -123,6 +133,14 @@ void processs_keyboard(GLFWwindow *window, Camera *cam)
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_J))
         cam->cameraPosition.y -= cam->cameraSpeed;
+    
+}
+
+float cameraDistance(Camera *cam)
+{
+    //just vertical distance for zoom
+    return abs(cam->cameraPosition.y - TrajParser::basePosition.y);
+    
 }
 
 int main () {
@@ -133,7 +151,15 @@ int main () {
     
     camera.cameraPosition = TrajParser::basePosition;
     //camera.cameraPosition.z = 100;
-    camera.cameraPosition.y = 500;
+    
+    //a couple of things that need to be done regarding the camera
+    //we need to map the camera position to the position of the map in lat/lon
+    //this is relatively easy, but always centering the map on the exact point is harder
+    //and the map and the trajectories need to be in the same system
+    
+    //camera.cameraPosition = glm::vec3(0.0,0.0,0.0);
+    camera.cameraPosition.y = 1000;
+    
     camera.cameraFront = glm::vec3(0.0, 0.0, -1.0);
     camera.cameraUp = glm::vec3(0.0, 1.0, 0.0);
     camera.cameraSpeed = 10;
@@ -141,6 +167,7 @@ int main () {
     camera.yaw = 0.0;
     
     //for now using the first pass shader as the trajectory rendering one
+    
     
     GLSLShader firstPassShader;
     firstPassShader.LoadFromFile(GL_VERTEX_SHADER, "vert.glsl");
@@ -150,6 +177,17 @@ int main () {
     firstPassShader.AddUniform("view_mat");
     firstPassShader.AddUniform("projection_mat");
     firstPassShader.AddUniform("model_mat");
+    firstPassShader.UnUse();
+    
+    GLSLShader mapShader;
+    mapShader.LoadFromFile(GL_VERTEX_SHADER, "map_vs.glsl");
+    mapShader.LoadFromFile(GL_FRAGMENT_SHADER, "map_fs.glsl");
+    mapShader.CreateAndLinkProgram();
+    mapShader.Use();
+    mapShader.AddUniform("view_mat");
+    mapShader.AddUniform("projection_mat");
+    mapShader.AddUniform("model_mat");
+    mapShader.UnUse();
     
     glfwSetCursorPosCallback(g_window, mouse_callback);
     glfwSetInputMode(g_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -175,7 +213,9 @@ int main () {
 //    TrajParser trajetory3("trajectories/walk_17.csv",firstPassShader);
 //    TrajParser trajetory4("trajectories/walk_20.csv",firstPassShader);
     
-    std::vector<TrajParser> TrajList = TrajParser::LoadTrajDescription("trajectories/trajectories.txt",firstPassShader);
+    std::vector<TrajParser> TrajList = TrajParser::LoadTrajDescription("trajectories/trajectories2.txt",firstPassShader);
+    
+    
 //    TrajList.push_back(trajetory);
 //    TrajList.push_back(trajetory2);
 //    TrajList.push_back(trajetory3);
@@ -202,7 +242,30 @@ int main () {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDepthMask(GL_TRUE);
 
+    firstPassShader.Use();
     glUniformMatrix4fv(firstPassShader("projection_mat"), 1, GL_FALSE, glm::value_ptr(perspectiveMatrix));
+    mapShader.Use();
+    glUniformMatrix4fv(mapShader("projection_mat"), 1, GL_FALSE, glm::value_ptr(perspectiveMatrix));
+    //-30.057637, -51.171501
+    
+    float distance = cameraDistance(&camera);
+    float ratio; //= 1 / distance;
+    //10*(1-(00/1000))
+    
+    ratio = 1-(distance/1000);
+    //int zoom = (int)floor(5000 * ratio);
+    int zoom = (10*ratio) + 5;
+    
+    //this is still static
+    //will need to use the calculation from lat/lon to our coordinate system and then update map when camera moves
+    //also would make sense to treat the map sort of a 1 plane skybox
+    //but the textures change based on position/distance - it just stays static with relation to the camera
+    
+    Map myMap(-30.057637, -51.171501,zoom,mapShader);
+    //myMap.GetMapData(-30.057637, -51.171501,zoom);
+    //myMap.GetLocation();
+    
+    //if 1000 is default distance
     
 	while (!glfwWindowShouldClose (g_window)) {
 		
@@ -220,13 +283,56 @@ int main () {
         
 		_update_fps_counter (g_window);
 		
+        
+        mapShader.Use();
+        glUniformMatrix4fv(mapShader("view_mat"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
+        glUniformMatrix4fv(mapShader("model_mat"), 1, GL_FALSE, glm::value_ptr(model_mat));
+        
+        //for each tile
+        //draw arrays -- but would make sense to
+        
+//        for(auto &curTile : myMap.tiles){
+//                //curTile.
+//        }
+//
+//        for(auto &curTile : myMap.tileData){
+//            glBindVertexArray(curTile.second.vertexArrayObject);
+//
+//            glDrawArrays(GL_TRIANGLES, 0, 6);//this is default for a square
+//            //actually modelmatrix should probably be tile based
+//
+//            //curTile.second.
+//
+//            //glBindVertexArray()
+//        }
+        
+        //this one vao and rebinding everything and one draw call per tile is not very efficient but will stay for now
+        for(int i = 0; i < TILEMAP_SIZE; i++){
+            for(int j = 0; j < TILEMAP_SIZE; j++){
+                glUniformMatrix4fv(mapShader("model_mat"), 1, GL_FALSE, glm::value_ptr(myMap.tileMap[i][j].modelMatrix));
+                glBindTexture(GL_TEXTURE_2D, myMap.tileMap[i][j].textureID);
+                glBindVertexArray(myMap.tileMap[i][j].vertexArrayObject);
+                glDrawArrays(GL_TRIANGLES, 0, 6);
+                //tileMap[i][j].SetupData();
+                //tileMap[i][j].GetMapData(xCenter, yCenter, curZoom);
+                //tileMap[i][j].modelMatrix = glm::translate(glm::mat4(1.0), glm::vec3(i*100,0,j*100));
+            }
+        }
+        //glBindVertexArray(myMap.vertexArrayObject);
+        //glDrawArrays(GL_TRIANGLES, 0, 6);
+        
         firstPassShader.Use();
 
-		glPointSize(5);
+        //this doesnt seems to work on mac os
+		//glPointSize(5);
+//        glDisable(GL_LINE_SMOOTH);
+//        glEnable(GL_LINE_WIDTH);
+//        glLineWidth(10);
         
         glUniformMatrix4fv(firstPassShader("view_mat"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
         glUniformMatrix4fv(firstPassShader("model_mat"), 1, GL_FALSE, glm::value_ptr(model_mat));
         
+        //shouldn this be an auto &?
         for(auto curTraj : TrajList){
             glBindVertexArray (curTraj.vertexArrayObject);
             glDrawArrays (GL_LINE_STRIP, 0, curTraj.positions.size());
@@ -242,6 +348,26 @@ int main () {
 /*-----------------------------move camera here-------------------------------*/
 		// control keys
         processs_keyboard(g_window, &camera);
+        
+        float curDistance = cameraDistance(&camera);
+        if(abs(distance-curDistance) > 100){
+            //ratio = 1/curDistance;
+            ratio = 1-(round(curDistance)/1000);
+            //int newZoom = (int)floor(5000 * ratio);
+            int newZoom = int(floor((10*ratio) + 5));
+            //zoom = (int)floor(5000 * ratio);
+            if(newZoom != zoom){
+                //myMap.GetMapData(-30.057637, -51.171501,newZoom);
+                zoom = newZoom;
+                myMap.curZoom = zoom;
+                myMap.FillMapTiles();
+            }
+            distance = curDistance;
+        }
+        
+        //for testing the position
+        //std::cout << to_string(cameramatrix[3][0]) << " " << to_string(cameramatrix[3][1])<< " " << to_string(cameramatrix[3][2]) << "\n";
+        
 //
 //        if (GLFW_PRESS == glfwGetKey (g_window, GLFW_KEY_ESCAPE)) {
 //            glfwSetWindowShouldClose (g_window, 1);
