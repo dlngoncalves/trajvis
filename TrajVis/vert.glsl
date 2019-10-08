@@ -8,7 +8,7 @@ uniform mat4 projection_mat, view_mat, model_mat;
 
 
 out vec3 position_eye;
-out vec3 vertColorTemp;
+out vec3 vertColorTemp_g;
 //, normal_eye; //not using normals for anything now
 
 
@@ -22,7 +22,7 @@ void main () {
     //for now just using the color as a intensity of red
     //vertColorTemp = vec3(vertex_temp.r,vertex_temp.g,vertex_temp.b);
     //vertColorTemp = vec3(1.0,1.0,0.0);
-    vertColorTemp = vertex_temp;
+    vertColorTemp_g = vertex_temp;
 	gl_Position = projection_mat * view_mat * model_mat * vec4(vertex_position,1.0);
     
 }
