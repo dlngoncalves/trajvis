@@ -4,31 +4,33 @@
 
 //layout (points) in;
 layout (lines) in;
-layout (line_strip, max_vertices = 4) out;
+layout (triangle_strip, max_vertices = 4) out;
 
 in vec3 vertColorTemp_g[];
 out vec3 vertColorTemp;
 
 void main() {
-    gl_Position = gl_in[0].gl_Position;
-    gl_Position.x -= 1;
+    gl_Position = gl_in[1].gl_Position;
+    gl_Position.x -= 2;
+    //gl_Position.z -= 1;
     vertColorTemp = vertColorTemp_g[0];
     EmitVertex();
 
-    gl_Position = gl_in[1].gl_Position;
-    gl_Position.x -= 1;
+    gl_Position = gl_in[0].gl_Position;
+    gl_Position.x -= 2;
+    //gl_Position.z += 1;
     vertColorTemp = vertColorTemp_g[0];
     EmitVertex();
     
-    EndPrimitive();
+    //EndPrimitive();
+    
+    gl_Position = gl_in[1].gl_Position;
+    gl_Position.x += 2;
+    vertColorTemp = vertColorTemp_g[0];
+    EmitVertex();
     
     gl_Position = gl_in[0].gl_Position;
-    gl_Position.x += 1;
-    vertColorTemp = vertColorTemp_g[0];
-    EmitVertex();
-    
-    gl_Position = gl_in[1].gl_Position;
-    gl_Position.x += 1;
+    gl_Position.x += 2;
     vertColorTemp = vertColorTemp_g[0];
     EmitVertex();
     
