@@ -158,10 +158,16 @@ int main () {
     //and the map and the trajectories need to be in the same system
     
     //camera.cameraPosition = glm::vec3(0.0,0.0,0.0);
-    camera.cameraPosition.y = 1000;
     
+    camera.cameraPosition.y = 1000;
     camera.cameraFront = glm::vec3(0.0, 0.0, -1.0);
     camera.cameraUp = glm::vec3(0.0, 1.0, 0.0);
+    
+//for ortho
+//    camera.cameraPosition.y = 0;
+//    camera.cameraFront = glm::vec3(0.0, -1.0, 0.0);
+//    camera.cameraUp = glm::vec3(0.0, 0.0, 1.0);
+    
     camera.cameraSpeed = 10;
     camera.pitch = 0.0;
     camera.yaw = 0.0;
@@ -172,6 +178,7 @@ int main () {
     GLSLShader firstPassShader;
     firstPassShader.LoadFromFile(GL_VERTEX_SHADER, "vert.glsl");
     firstPassShader.LoadFromFile(GL_FRAGMENT_SHADER, "frag.glsl");
+    firstPassShader.LoadFromFile(GL_GEOMETRY_SHADER, "geom.glsl");
     firstPassShader.CreateAndLinkProgram();
     firstPassShader.Use();
     firstPassShader.AddUniform("view_mat");
@@ -223,6 +230,10 @@ int main () {
 
     //camera.cameraPosition.y = trajetory.positions[0].y;
     glm::mat4 perspectiveMatrix = glm::perspective(glm::radians(45.0f), (float)g_gl_width / g_gl_height, 0.1f, 10000.0f);
+    
+    //this kinda works for ortographic perspective (but movement and viewing volume are not ok)
+    //glm::mat4 perspectiveMatrix = glm::ortho<float>(0.0f, (float)g_gl_width,-(float)g_gl_height,(float)g_gl_height, -1000.f, +1000.0f);
+    
 	glm::mat4 model_mat = glm::mat4(1.0f);
     model_mat = glm::scale(model_mat, glm::vec3(0.2,0.2,0.2));
 	
@@ -335,7 +346,7 @@ int main () {
         //shouldn this be an auto &?
         for(auto curTraj : TrajList){
             glBindVertexArray (curTraj.vertexArrayObject);
-            glDrawArrays (GL_LINE_STRIP, 0, curTraj.positions.size());
+            glDrawArrays (GL_LINES, 0, curTraj.positions.size());
         }
         
 
