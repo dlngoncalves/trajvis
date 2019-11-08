@@ -15,7 +15,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 
-#define TILEMAP_SIZE 3
+#define TILEMAP_SIZE 5
 //class or struct?
 struct Tile
 {
@@ -68,6 +68,9 @@ class Map {
     //
 
 public:
+    
+    static int zoom;
+    
     float mapSurface[18]{
         //this should probably be more generic
         //also why is this at -100 y? because of camera height?
@@ -136,6 +139,9 @@ public:
     GLuint textureID;
     static int long2tilex(double lon, int z);
     static int lat2tiley(double lat, int z);
+    
+    static float long2tilexpx(double lon, int z);
+    static float lat2tileypx(double lat, int z);
     
     static double tilex2long(int x, int z);
     static double tiley2lat(int y, int z);
