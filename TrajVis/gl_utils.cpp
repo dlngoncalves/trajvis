@@ -1,6 +1,7 @@
 /******************************************************************************\
 | OpenGL 4 Example Code.                                                       |
 \******************************************************************************/
+#define GL_SILENCE_DEPRECATION
 #include "gl_utils.h"
 #include <stdio.h>
 #include <time.h>
@@ -8,6 +9,7 @@
 #include <assert.h>
 #define GL_LOG_FILE "gl.log"
 #define MAX_SHADER_LENGTH 262144
+
 
 /*--------------------------------LOG FUNCTIONS-------------------------------*/
 bool restart_gl_log () {

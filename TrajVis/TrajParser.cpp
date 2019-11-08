@@ -16,9 +16,10 @@
 #include <curl/curl.h>
 #include <vector>
 #include <sqlite3.h>
+#include "Map.hpp"
 
 glm::vec3 TrajParser::basePosition;
-
+float TrajParser::relativeScale = 1;
 
 //geolife format
 //lat
@@ -79,7 +80,20 @@ static int trajSegCallback(void *Trajectory, int argc, char **argv, char **azCol
         columnCount++;
         if(columnCount == 5){
             if(TrajParser::basePosition.x == 0 && TrajParser::basePosition.y == 0 && TrajParser::basePosition.z == 0){
+                
+                int x = Map::long2tilex(auxSeg.lon,Map::zoom);
+                int y = Map::lat2tiley(auxSeg.lat, Map::zoom);
+                
+                double returnedLat = Map::tiley2lat(y, Map::zoom);
+                double returnedLon = Map::tilex2long(x, Map::zoom);
+                
+                //TrajParser::basePosition = traj->latLonToMeters(returnedLat, returnedLon, 17);
                 TrajParser::basePosition = traj->convertLatLon(auxSeg,glm::vec3(0,auxSeg.elevation,0));
+
+                int posX = Map::long2tilex(returnedLon, Map::zoom);
+                int posY = Map::lat2tiley(returnedLat, Map::zoom);
+
+                traj->SetScale(posX, posY, Map::zoom);
             }
             glm::vec3 auxPosition = traj->convertLatLon(auxSeg,TrajParser::basePosition);
             
@@ -147,7 +161,7 @@ std::vector<TrajParser> TrajParser::LoadTrajDescription(std::string file, GLSLSh
                 }
                 
                 if(trajName != ""){
-                    query = "SELECT * FROM TRAJSEG WHERE TRAJECTORYNAME IS " + trajName;
+                    query = "SELECT * FROM TRAJSEG WHERE TRAJECTORYNAME IS " + trajName + ";";// ORDER BY DATETIME ASC;";
                     TrajParser curTrajDB(shader);
                     rc = sqlite3_exec(db, query.c_str(),trajSegCallback, &curTrajDB, &zErrMsg);
                     curTrajDB.SetupData();
@@ -158,6 +172,7 @@ std::vector<TrajParser> TrajParser::LoadTrajDescription(std::string file, GLSLSh
             }
         }
     //}
+    
     return trajectories;
 }
 
@@ -176,7 +191,7 @@ void TrajParser::loadTrajectory(std::string file)
     
     TrajSeg auxSeg;
     glm::vec3 auxPosition;
-    glm::vec3 auxRefPoint;
+    //glm::vec3 auxRefPoint;
     
     trajFile.open(file,std::ifstream::in);
     
@@ -197,7 +212,28 @@ void TrajParser::loadTrajectory(std::string file)
                 lineStream >> auxSeg;
                 
                 if(basePosition.x == 0 && basePosition.y == 0 && basePosition.z == 0){
-                        basePosition = convertLatLon(auxSeg,glm::vec3(0,auxSeg.elevation,0));
+                    //base position is in mercator meters without scale
+                    //set scale is based on tile position, based on lat/lon
+                    
+//                    basePosition = convertLatLon(auxSeg,glm::vec3(0,auxSeg.elevation,0));
+//                    int posX = Map::long2tilex(auxSeg.lon, Map::zoom);
+//                    int posY = Map::lat2tiley(auxSeg.lat, Map::zoom);
+//                    SetScale(posX, posY, Map::zoom);
+
+                    int x = Map::long2tilex(auxSeg.lon,Map::zoom);
+                    int y = Map::lat2tiley(auxSeg.lat, Map::zoom);
+                    
+                    double returnedLat = Map::tiley2lat(y, Map::zoom);
+                    double returnedLon = Map::tilex2long(x, Map::zoom);
+                    
+                    //TrajParser::basePosition = traj->latLonToMeters(returnedLat, returnedLon, 17);
+                    TrajParser::basePosition = convertLatLon(auxSeg,glm::vec3(0,auxSeg.elevation,0));
+                    
+                    int posX = Map::long2tilex(returnedLon, Map::zoom);
+                    int posY = Map::lat2tiley(returnedLat, Map::zoom);
+                    
+                    SetScale(posX, posY, Map::zoom);
+
                 }
                 
                 //I mean, not really a position in xyz space, as we are dealing with gps coordinates
@@ -329,7 +365,8 @@ std::stringstream &operator >> (std::stringstream &lineStream, TrajSeg &auxSeg)
 //08/07 - this is working, but not very robust? dependent on stuff like scale, ref position etc ? need to look into this again
 glm::vec3 TrajParser::convertLatLon(TrajSeg &segment,glm::vec3 refPoint)
 {
-    float scale = 1;
+    //float scale = 1;
+    float scale = TrajParser::relativeScale;
     float posx = segment.lon * originShift / 180;
     
     float posy = log(tan((90 + segment.lat) * M_PI / 360)) / (M_PI / 180);
@@ -339,12 +376,76 @@ glm::vec3 TrajParser::convertLatLon(TrajSeg &segment,glm::vec3 refPoint)
     //return glm::vec3((posx -refPoint.x) * scale, (posy -refPoint.y) * scale, segment.elevation);//probably should not use elevation?
     
     //return glm::vec3((posx -refPoint.x) * scale, segment.elevation, (posy -refPoint.z) * scale);//probably should not use elevation?
+    
+    //wonder if I could not multiply by scale here and use a scale matrix
     return glm::vec3((posx -refPoint.x) * scale, 0.0f, (posy -refPoint.z) * scale);//probably should not use elevation?
 }
 
+glm::vec3 TrajParser::latLonToMeters(float lat, float lon, int zoom)
+{
+    
+    float posx = lon * originShift /180;
+    
+    float posy = log(tan((90 + lat) * M_PI / 360)) / (M_PI / 180);
+    posy = posy * originShift / 180;
+    
+    return glm::vec3(posx,0.0f,posy);
+}
+
+float TrajParser::resolution(int zoom)
+{
+    return initialResolution / pow(2, zoom);
+}
+
+glm::vec2 TrajParser::pixelsToMeters(glm::vec2 p, int zoom)
+{
+    float res = resolution(zoom);
+    
+    glm::vec2 met = glm::vec2(p.x * res - originShift,  -(p.y * res - originShift));
+    
+    return met;
+}
+
+void TrajParser::SetScale(int x, int y, int z)
+{
+    //reference tile size
+    
+    glm::vec2 min = pixelsToMeters(glm::vec2(x*512,y*512), z);
+    glm::vec2 max = pixelsToMeters(glm::vec2((x+1)*512,(y+1)*512), z);
+    
+    glm::vec2 size = abs(max-min);
+    TrajParser::relativeScale = 200/size.x;
+}
+
+void TrajParser::ResetScale(double lat, double lon, std::vector<TrajParser> *trajectories)
+{
+    int x = Map::long2tilex(lon,Map::zoom);
+    int y = Map::lat2tiley(lat, Map::zoom);
+
+    double returnedLat = Map::tiley2lat(y, Map::zoom);
+    double returnedLon = Map::tilex2long(x, Map::zoom);
+
+    int posX = Map::long2tilex(returnedLon, Map::zoom);
+    int posY = Map::lat2tiley(returnedLat, Map::zoom);
+
+    SetScale(posX, posY, Map::zoom);
+
+    //need to rebind buffer data - not gonna be fast
+    for(auto &curTraj : *trajectories){
+        for(int i = 0; i < curTraj.positions.size(); i++){
+            curTraj.positions[i] = TrajParser::convertLatLon(curTraj.segList[i], TrajParser::basePosition);
+        }
+        curTraj.SetupData();
+    }
+}
+
+//tile bounds starts at tileid * tilesize and goes to tileid+1 * tilesize
+//the part used is the size, which is 
 void TrajParser::SetupData()
 {
     //this works but we should look into abstracting away from the trajectory code the opengl stuff
+    
+    //when changing the buffer data should probably not regen
     glGenBuffers(1, &vertexBufferObject);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
     //not sure if should use glm data pointer or vector data pointer

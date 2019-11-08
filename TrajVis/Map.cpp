@@ -12,15 +12,18 @@
 #include <math.h>
 #include "stb_image.h"
 #include <iostream>
+#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 //mapbox exemple queries
 //"https://api.mapbox.com/v4/mapbox.satellite/1/0/0@2x.jpg90?access_token=pk.eyJ1Ijoic2Vub3JzcGFya2xlIiwiYSI6ImNqdXU4ODQ2NTBnMDk0ZG1obDA4bWUzbmUifQ.gviggw2S34VwFVxshcbj_A"
 //"https://api.mapbox.com/v4/mapbox.satellite/16/23451/38510@2x.jpg90?access_token=pk.eyJ1Ijoic2Vub3JzcGFya2xlIiwiYSI6ImNqdXU4ODQ2NTBnMDk0ZG1obDA4bWUzbmUifQ.gviggw2S34VwFVxshcbj_A
 
-std::string url = "https://api.mapbox.com/v4/mapbox.satellite/";
+std::string url = "https://api.mapbox.com/v4/mapbox.streets/"; //changed here for streets, can make user choose
 std::string apikey = "?access_token=pk.eyJ1Ijoic2Vub3JzcGFya2xlIiwiYSI6ImNqdXU4ODQ2NTBnMDk0ZG1obDA4bWUzbmUifQ.gviggw2S34VwFVxshcbj_A";
 
 using json = nlohmann::json;
+
+int Map::zoom;
 
 //might make sense to recalculate lat/lon from tile position
 Map::Map(float newLat, float newLon, int zoom, GLSLShader &shader) : myShader(shader)
@@ -50,11 +53,21 @@ Map::Map(float newLat, float newLon, int zoom, GLSLShader &shader) : myShader(sh
             int tileCenter = (int)floor(TILEMAP_SIZE/2);
             
             //dont need to be abs because we can subtract
-            int xOffset = i - tileCenter;
-            int yOffset = j - tileCenter;
+            int xOffset = (i - tileCenter);
+            int yOffset = (j - tileCenter);
             
             tileMap[i][j].GetMapData(xCenter, yCenter,i,j, curZoom);
-            tileMap[i][j].modelMatrix = glm::translate(glm::mat4(1.0), glm::vec3((j+1)*200,0,TILEMAP_SIZE-i*200));
+            tileMap[i][j].modelMatrix = glm::mat4(1.0);
+            tileMap[i][j].modelMatrix = glm::rotate<float>(tileMap[i][j].modelMatrix, -M_PI/2, glm::vec3(0.0,1.0,0.0));
+            
+            //tileMap[i][j].modelMatrix = glm::translate(tileMap[i][j].modelMatrix,glm::vec3((j+1)*200,0,TILEMAP_SIZE-i*200));
+            
+            tileMap[i][j].modelMatrix = glm::translate(tileMap[i][j].modelMatrix,glm::vec3(yOffset*200,0,-xOffset*200));
+            
+            //tileMap[i][j].modelMatrix = glm::translate(glm::mat4(1.0), glm::vec3((j+1)*200,100,TILEMAP_SIZE-i*200));
+            
+            //tileMap[i][j].modelMatrix = glm::translate(glm::mat4(1.0), glm::vec3(0.0,200*(i+j),0.0));
+            //tileMap[i][j].modelMatrix = glm::mat4(1.0);
         }
     }
     //need to get the texture data based on the tile not coord
@@ -133,14 +146,36 @@ void Map::SetupData()
 //from https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#X_and_Y
 int Map::long2tilex(double lon, int z)
 {
-    return (int)(floor((lon + 180.0) / 360.0 * (1 << z)));
+    float result = (lon + 180.0) / 360.0 * (1 << z);
+    
+    return (int)(floor(result));
+    //return (int)(floor((lon + 180.0) / 360.0 * (1 << z)));
 }
 
 int Map::lat2tiley(double lat, int z)
 {
     double latrad = lat * M_PI/180.0;
-    return (int)(floor((1.0 - asinh(tan(latrad)) / M_PI) / 2.0 * (1 << z)));
+    
+    float result = (1.0 - asinh(tan(latrad)) / M_PI) / 2.0 * (1 << z);
+    return (int)(floor(result));
+    //return (int)(floor((1.0 - asinh(tan(latrad)) / M_PI) / 2.0 * (1 << z)));
 }
+
+float Map::long2tilexpx(double lon, int z)
+{
+    float result = (lon + 180.0) / 360.0 * (1 << z);
+    float intpart;
+    return modf(result, &intpart);
+}
+
+float Map::lat2tileypx(double lat, int z)
+{
+    double latrad = lat * M_PI/180.0;
+    float intpart;
+    float result = (1.0 - asinh(tan(latrad)) / M_PI) / 2.0 * (1 << z);
+    return modf(result, &intpart);
+}
+
 
 double Map::tilex2long(int x, int z)
 {
@@ -201,7 +236,8 @@ void Tile::GetMapData(int x, int y, int curX, int curY, int zoom)
     std::string tile = to_string(x+xOffset) + "/" + to_string(y+yOffset) + "@2x.jpg90";
     newUrl = newUrl + tile + apikey;
     
-    std::string fileName = to_string(x+xOffset) + "-" + to_string(y+yOffset) + "-" + to_string(zoom) + ".jpg";
+    //added streets to filename so we can download those
+    std::string fileName = to_string(x+xOffset) + "-" + to_string(y+yOffset) + "-" + to_string(zoom) + "-" + "streets" + ".jpg";
     
     FILE *image = std::fopen(fileName.c_str(), "rb");
     

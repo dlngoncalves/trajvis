@@ -44,9 +44,11 @@ class TrajParser {
 protected:
     
 
-    const int earthRadius = 6378137;
+    const static int earthRadius = 6378137;
     
-    const double originShift = 2 * M_PI * earthRadius /2; //I actually dont know what this is for
+    constexpr const static double originShift = 2 * M_PI * earthRadius /2; //I actually dont know what this is for
+    
+    constexpr const static double initialResolution = 2 * M_PI * earthRadius/ 512; //texture size @hd res
     
     float *getWeatherVector();
     
@@ -54,7 +56,19 @@ protected:
     
 public:
     //TrajParser();
-    glm::vec3 convertLatLon(TrajSeg &segment,glm::vec3 refPoint);
+    static glm::vec3 convertLatLon(TrajSeg &segment,glm::vec3 refPoint);
+    
+    glm::vec3 latLonToMeters(float lat, float lon, int zoom);
+    
+    static float resolution(int zoom);
+    static glm::vec2 pixelsToMeters(glm::vec2 p, int zoom);
+    
+    static float relativeScale;
+    static glm::vec2 centerMercator;
+    
+    static void SetScale(int x, int y, int z);//center mercator and zoom
+    
+    static void ResetScale(double lat, double lon, std::vector<TrajParser> *trajectories);// not really reset in the sense of restarting, but of setting again
     
     TrajParser(std::string file,GLSLShader &shader) : myShader(shader)
     {
@@ -77,6 +91,7 @@ public:
     std::vector<TrajSeg> segList; //also moving this here for easier access but need to implement something better
     //should I have
     
+    //why is this virtual again?
     virtual void loadTrajectory(std::string file);//or constructor?
     
     //should probably have a small constructor here

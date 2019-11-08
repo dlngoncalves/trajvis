@@ -161,10 +161,10 @@ int main () {
     camera.cameraPosition.y = 1000;
     
     camera.cameraFront = glm::vec3(0.0, 0.0, -1.0);
-    camera.cameraUp = glm::vec3(0.0, 1.0, 0.0);
-    camera.cameraSpeed = 10;
+    camera.cameraUp = glm::vec3(0.0, 1.0, 0.0);    
+    camera.cameraSpeed = 20;
     camera.pitch = 0.0;
-    camera.yaw = 0.0;
+    camera.yaw = -90.0;
     
     //for now using the first pass shader as the trajectory rendering one
     
@@ -212,7 +212,7 @@ int main () {
 //    TrajParser trajetory2("trajectories/walk_16.csv",firstPassShader);
 //    TrajParser trajetory3("trajectories/walk_17.csv",firstPassShader);
 //    TrajParser trajetory4("trajectories/walk_20.csv",firstPassShader);
-    
+    Map::zoom = 15;
     std::vector<TrajParser> TrajList = TrajParser::LoadTrajDescription("trajectories/trajectories2.txt",firstPassShader);
     
     
@@ -224,7 +224,7 @@ int main () {
     //camera.cameraPosition.y = trajetory.positions[0].y;
     glm::mat4 perspectiveMatrix = glm::perspective(glm::radians(45.0f), (float)g_gl_width / g_gl_height, 0.1f, 10000.0f);
 	glm::mat4 model_mat = glm::mat4(1.0f);
-    model_mat = glm::scale(model_mat, glm::vec3(0.2,0.2,0.2));
+    //model_mat = glm::scale(model_mat, glm::vec3(0.2,0.2,0.2));
 	
     GLfloat deltaTime = 0.0f;
     GLfloat lastFrame = 0.0f;
@@ -254,18 +254,84 @@ int main () {
     
     ratio = 1-(distance/1000);
     //int zoom = (int)floor(5000 * ratio);
-    int zoom = (10*ratio) + 5;
+    
+    
+    int zoom = (10*ratio) + 15;
+    
+    Map::zoom = zoom; //wont use both for long
     
     //this is still static
     //will need to use the calculation from lat/lon to our coordinate system and then update map when camera moves
     //also would make sense to treat the map sort of a 1 plane skybox
     //but the textures change based on position/distance - it just stays static with relation to the camera
     
-    Map myMap(-30.057637, -51.171501,zoom,mapShader);
+    //should move this stuff to a init function
+    glm::vec3 startPos = glm::vec3(TrajList[0].segList[0].lon,0.0,TrajList[0].segList[0].lat);
+    
+    float posX = Map::long2tilexpx(startPos.x, Map::zoom);
+    float posY = Map::lat2tileypx(startPos.z, Map::zoom);
+    
+    float translatedX = (posX *200) -100;
+    float translatedY = (posY *200) -100;
+    
+    //int x = Map::long2tilex(startPos.x,zoom);
+    //int y = Map::lat2tiley(startPos.z, zoom);
+    //double returnedLat = Map::tiley2lat(y, zoom);
+    //double returnedLon = Map::tilex2long(x, zoom);
+    //int earthRadius = 6378137;
+    //double originShift = 2 * M_PI * earthRadius;// /2;
+    //int exp = 2 << zoom-1;
+    //double cosine = cos(startPos.z);
+    //double tileDist = (originShift * cosine) / exp;
+    //double pixelDist = tileDist / 512;
+    //float pixelWorld = ldexp(1, -9) * 200;
+    
+
+    
+    //TrajList[0].SetScale(x, y, zoom);
+    
+    //-30.035939, -51.213876
+    //Map myMap(-30.057637, -51.171501,zoom,mapShader);
+    //Map myMap(-30.035939, -51.213876,zoom,mapShader);
+    
+    //should change to start on current location - but this is a big implementation thing
+    Map myMap(startPos.z, startPos.x,Map::zoom,mapShader);
+    
+    //glm::mat4 trajMatrix = myMap.tileMap[4][4].modelMatrix;
+    
+    //trajmatrix should be a class member
+    glm::mat4 trajMatrix = glm::mat4(1.0);
+    //trajMatrix = glm::translate(trajMatrix,glm::vec3(-(1)*200,-99,-TILEMAP_SIZE-1*200));
+    
+    //trajMatrix = glm::translate(trajMatrix,glm::vec3(-200,00,-400));
+    
+    //trajMatrix = glm::scale(trajMatrix, glm::vec3(0.2,1.0,0.2));
+    
+    //trajMatrix = glm::scale(trajMatrix, glm::vec3(TrajParser::relativeScale,1.0,TrajParser::relativeScale));
+    //trajMatrix = glm::rotate<float>(trajMatrix, -M_PI/2, glm::vec3(0.0,1.0,0.0));
+    
+    
+    trajMatrix = glm::translate(trajMatrix, glm::vec3(translatedX,-99.0,translatedY));
+    trajMatrix = glm::rotate<float>(trajMatrix, -M_PI, glm::vec3(1.0,0.0,0.0));
+    
+    
+    //
+    
+    
+    
+    
+    //trajMatrix = glm::translate(trajMatrix, glm::vec3(0.0,-99.0,0.0));
+    
     //myMap.GetMapData(-30.057637, -51.171501,zoom);
     //myMap.GetLocation();
     
     //if 1000 is default distance
+    
+    //dont think this is needed anymore
+    float xtrans = 0.0;
+    float ytrans = 0.0;
+    
+    float rotation = 0.0;
     
 	while (!glfwWindowShouldClose (g_window)) {
 		
@@ -276,7 +342,7 @@ int main () {
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        camera.cameraSpeed = 100.0f * deltaTime;
+        camera.cameraSpeed = 500.0f * deltaTime;
         
         
         glm::mat4 viewMatrix = glm::lookAt(camera.cameraPosition, camera.cameraPosition + camera.cameraFront, camera.cameraUp);
@@ -288,6 +354,7 @@ int main () {
         glUniformMatrix4fv(mapShader("view_mat"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
         glUniformMatrix4fv(mapShader("model_mat"), 1, GL_FALSE, glm::value_ptr(model_mat));
         
+        myMap.tileMap[0][0].modelMatrix = glm::rotate(myMap.tileMap[0][0].modelMatrix, rotation, glm::vec3(0.0,1.0,0.0));
         //for each tile
         //draw arrays -- but would make sense to
         
@@ -325,17 +392,22 @@ int main () {
 
         //this doesnt seems to work on mac os
 		//glPointSize(5);
-//        glDisable(GL_LINE_SMOOTH);
-//        glEnable(GL_LINE_WIDTH);
-//        glLineWidth(10);
-        
+        //glDisable(GL_LINE_SMOOTH);
+        //glEnable(GL_LINE_WIDTH);
+        //glLineWidth(10);
+        //glEnable(GL_PROGRAM_POINT_SIZE);
+        //glPointSize(5);
         glUniformMatrix4fv(firstPassShader("view_mat"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
-        glUniformMatrix4fv(firstPassShader("model_mat"), 1, GL_FALSE, glm::value_ptr(model_mat));
+        trajMatrix = glm::translate(trajMatrix, glm::vec3(xtrans,0.0,ytrans));
+        //trajMatrix = glm::rotate(trajMatrix, rotation, glm::vec3(0.0,1.0,0.0));
+        glUniformMatrix4fv(firstPassShader("model_mat"), 1, GL_FALSE, glm::value_ptr(trajMatrix));
         
         //shouldn this be an auto &?
         for(auto curTraj : TrajList){
             glBindVertexArray (curTraj.vertexArrayObject);
-            glDrawArrays (GL_LINE_STRIP, 0, curTraj.positions.size());
+            glDrawArrays (GL_LINE_STRIP, 0, (int)curTraj.positions.size());
+            //glDrawArrays (GL_LINE_STRIP, 0, 1000);
+            //glDrawArrays (GL_POINTS, 0, 1);
         }
         
 
@@ -354,15 +426,45 @@ int main () {
             //ratio = 1/curDistance;
             ratio = 1-(round(curDistance)/1000);
             //int newZoom = (int)floor(5000 * ratio);
-            int newZoom = int(floor((10*ratio) + 5));
+            int newZoom = int(floor((10*ratio) + 15));
+            newZoom > 19 ? newZoom = 19 : newZoom = newZoom;
             //zoom = (int)floor(5000 * ratio);
             if(newZoom != zoom){
                 //myMap.GetMapData(-30.057637, -51.171501,newZoom);
                 zoom = newZoom;
                 myMap.curZoom = zoom;
+                Map::zoom = zoom;
                 myMap.FillMapTiles();
+                TrajParser::ResetScale(startPos.z, startPos.x, &TrajList);
+                
+                //really need to put this in a function
+                float posX = Map::long2tilexpx(startPos.x, Map::zoom);
+                float posY = Map::lat2tileypx(startPos.z, Map::zoom);
+                
+                float translatedX = (posX *200) -100;
+                float translatedY = (posY *200) -100;
+                
+                trajMatrix = glm::mat4(1.0);
+                trajMatrix = glm::translate(trajMatrix, glm::vec3(translatedX,-99.0,translatedY));
+                trajMatrix = glm::rotate<float>(trajMatrix, -M_PI, glm::vec3(1.0,0.0,0.0));
             }
             distance = curDistance;
+        }
+        
+        if(GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_T)){
+            xtrans += 0.001;
+            //rotation += 0.001;
+        }
+        if(GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_Y)){
+            xtrans -= 0.001;
+            //rotation -= 0.001;
+        }
+        
+        if(GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_G)){
+            ytrans += 0.001;
+        }
+        if(GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_H)){
+            ytrans -= 0.001;
         }
         
         //for testing the position
