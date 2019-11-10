@@ -5,16 +5,17 @@
 //  Created by Diego Gonçalves on 23/11/18.
 //  Copyright © 2018 Diego Gonçalves. All rights reserved.
 //
-#define GL_SILENCE_DEPRECATION
+
 #ifndef Framebuffer_h
 #define Framebuffer_h
 
 #include <stdio.h>
+#define GL_SILENCE_DEPRECATION
 #ifdef __APPLE__
-#include <OpenGL/gl3.h>
-#include <OpenGL/gl3ext.h>
+	#include <OpenGL/gl3.h>
+	#include <OpenGL/gl3ext.h>
 #else
-#include <GL/glew.h> // include GLEW and new version of GL on Windows
+	#include <GL/glew.h> // include GLEW and new version of GL on Windows
 #endif
 
 class Framebuffer {
