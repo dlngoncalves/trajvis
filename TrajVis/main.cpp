@@ -6,6 +6,7 @@
     #include <OpenGL/gl3.h>
     #include <OpenGL/gl3ext.h>
 #else
+	#define GLEW_STATIC
     #include <GL/glew.h> // include GLEW and new version of GL on Windows
 #endif
 
@@ -31,7 +32,8 @@
 #include <string>
 #include <curl/curl.h>
 #include <sqlite3.h>
-#include <Map.hpp>
+//#include <Map.hpp>
+#include "Map.hpp"
 
 #define GL_LOG_FILE "gl.log"
 #define NUM_WAVES 5

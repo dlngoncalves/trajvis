@@ -16,7 +16,14 @@
 #define _GL_UTILS_H_
 
 #include <stdarg.h> // used by log functions to have variable number of args
-//#include <GL/glew.h> // include GLEW and new version of GL on Windows
+//not very goood this
+#ifdef __APPLE__
+    
+#else
+    #include <GL/glew.h> // include GLEW and new version of GL on Windows
+#endif
+
+#include <GL/glew.h> // include GLEW and new version of GL on Windows
 #include <GLFW/glfw3.h> // GLFW helper library
 
 /*------------------------------GLOBAL VARIABLES------------------------------*/

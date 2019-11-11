@@ -6,6 +6,7 @@
 //  Copyright © 2019 Diego Gonçalves. All rights reserved.
 //
 #define GL_SILENCE_DEPRECATION
+#define _USE_MATH_DEFINES
 #include "Map.hpp"
 #include <curl/curl.h>
 #include "nlohmann/json.hpp"
