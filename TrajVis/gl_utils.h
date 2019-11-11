@@ -23,7 +23,7 @@
     #include <GL/glew.h> // include GLEW and new version of GL on Windows
 #endif
 
-#include <GL/glew.h> // include GLEW and new version of GL on Windows
+//#include <GL/glew.h> // include GLEW and new version of GL on Windows
 #include <GLFW/glfw3.h> // GLFW helper library
 
 /*------------------------------GLOBAL VARIABLES------------------------------*/
