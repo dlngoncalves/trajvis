@@ -15,7 +15,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 
-#define TILEMAP_SIZE 5
+#define TILEMAP_SIZE 9
 //class or struct?
 struct Tile
 {

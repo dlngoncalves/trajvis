@@ -33,10 +33,10 @@ public:
 	void DeleteShaderProgram();
 
 private:
-	enum ShaderType {VERTEX_SHADER, FRAGMENT_SHADER, GEOMETRY_SHADER};
+	enum ShaderType {VERTEX_SHADER, FRAGMENT_SHADER, GEOMETRY_SHADER, TESSELATION_CONTROL,TESSELATION_EVALUATION};
 	GLuint	_program;
 	int _totalShaders;
-	GLuint _shaders[3];//0->vertexshader, 1->fragmentshader, 2->geometryshader
+	GLuint _shaders[5];//0->vertexshader, 1->fragmentshader, 2->geometryshader + tesselation stages
 	map<string,GLuint> _attributeList;
 	map<string,GLuint> _uniformLocationList;
 };	

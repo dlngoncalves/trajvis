@@ -18,7 +18,10 @@
 //"https://api.mapbox.com/v4/mapbox.satellite/1/0/0@2x.jpg90?access_token=pk.eyJ1Ijoic2Vub3JzcGFya2xlIiwiYSI6ImNqdXU4ODQ2NTBnMDk0ZG1obDA4bWUzbmUifQ.gviggw2S34VwFVxshcbj_A"
 //"https://api.mapbox.com/v4/mapbox.satellite/16/23451/38510@2x.jpg90?access_token=pk.eyJ1Ijoic2Vub3JzcGFya2xlIiwiYSI6ImNqdXU4ODQ2NTBnMDk0ZG1obDA4bWUzbmUifQ.gviggw2S34VwFVxshcbj_A
 
-std::string url = "https://api.mapbox.com/v4/mapbox.streets/"; //changed here for streets, can make user choose
+std::string url = "https://api.mapbox.com/v4/mapbox.terrain-rgb/"; //changed here for streets, can make user choose
+
+std::string urlHeight = "https://api.mapbox.com/v4/mapbox.terrain-rgb/"; //changed here for streets, can make user choose
+
 std::string apikey = "?access_token=pk.eyJ1Ijoic2Vub3JzcGFya2xlIiwiYSI6ImNqdXU4ODQ2NTBnMDk0ZG1obDA4bWUzbmUifQ.gviggw2S34VwFVxshcbj_A";
 
 using json = nlohmann::json;
@@ -233,11 +236,11 @@ void Tile::GetMapData(int x, int y, int curX, int curY, int zoom)
     
     
     std::string newUrl = url + to_string(zoom) + "/";
-    std::string tile = to_string(x+xOffset) + "/" + to_string(y+yOffset) + "@2x.jpg90";
+    std::string tile = to_string(x+xOffset) + "/" + to_string(y+yOffset) + "@2x.pngraw";
     newUrl = newUrl + tile + apikey;
     
     //added streets to filename so we can download those
-    std::string fileName = to_string(x+xOffset) + "-" + to_string(y+yOffset) + "-" + to_string(zoom) + "-" + "streets" + ".jpg";
+    std::string fileName = to_string(x+xOffset) + "-" + to_string(y+yOffset) + "-" + to_string(zoom) + "-" + "height" + ".png";
     
     FILE *image = std::fopen(fileName.c_str(), "rb");
     

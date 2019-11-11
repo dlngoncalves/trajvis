@@ -168,6 +168,7 @@ int main () {
     
     //for now using the first pass shader as the trajectory rendering one
     
+    //GL_TESS_CONTROL_SHADER, GL_TESS_EVALUATION_SHADER
     
     GLSLShader firstPassShader;
     firstPassShader.LoadFromFile(GL_VERTEX_SHADER, "vert.glsl");
@@ -183,6 +184,8 @@ int main () {
     GLSLShader mapShader;
     mapShader.LoadFromFile(GL_VERTEX_SHADER, "map_vs.glsl");
     mapShader.LoadFromFile(GL_FRAGMENT_SHADER, "map_fs.glsl");
+    mapShader.LoadFromFile(GL_TESS_CONTROL_SHADER, "map_ts_control.glsl");
+    mapShader.LoadFromFile(GL_TESS_EVALUATION_SHADER, "map_ts_eval.glsl");
     mapShader.CreateAndLinkProgram();
     mapShader.Use();
     mapShader.AddUniform("view_mat");
@@ -214,7 +217,7 @@ int main () {
 //    TrajParser trajetory3("trajectories/walk_17.csv",firstPassShader);
 //    TrajParser trajetory4("trajectories/walk_20.csv",firstPassShader);
     Map::zoom = 15;
-    std::vector<TrajParser> TrajList = TrajParser::LoadTrajDescription("trajectories/trajectories2.txt",firstPassShader);
+    std::vector<TrajParser> TrajList = TrajParser::LoadTrajDescription("trajectories/trajectories3.txt",firstPassShader);
     
     
 //    TrajList.push_back(trajetory);
@@ -261,7 +264,7 @@ int main () {
     //int zoom = (int)floor(5000 * ratio);
     
     
-    int zoom = (10*ratio) + 15;
+    int zoom = (10*ratio) + 10;
     
     Map::zoom = zoom; //wont use both for long
     
@@ -377,14 +380,15 @@ int main () {
 //
 //            //glBindVertexArray()
 //        }
-        
+        glPatchParameteri (GL_PATCH_VERTICES, 3);
         //this one vao and rebinding everything and one draw call per tile is not very efficient but will stay for now
         for(int i = 0; i < TILEMAP_SIZE; i++){
             for(int j = 0; j < TILEMAP_SIZE; j++){
                 glUniformMatrix4fv(mapShader("model_mat"), 1, GL_FALSE, glm::value_ptr(myMap.tileMap[i][j].modelMatrix));
                 glBindTexture(GL_TEXTURE_2D, myMap.tileMap[i][j].textureID);
                 glBindVertexArray(myMap.tileMap[i][j].vertexArrayObject);
-                glDrawArrays(GL_TRIANGLES, 0, 6);
+                //glDrawArrays(GL_TRIANGLES, 0, 6);
+                glDrawArrays (GL_PATCHES, 0, 6);
                 //tileMap[i][j].SetupData();
                 //tileMap[i][j].GetMapData(xCenter, yCenter, curZoom);
                 //tileMap[i][j].modelMatrix = glm::translate(glm::mat4(1.0), glm::vec3(i*100,0,j*100));
@@ -427,34 +431,34 @@ int main () {
         processs_keyboard(g_window, &camera);
         
         float curDistance = cameraDistance(&camera);
-        if(abs(distance-curDistance) > 100){
-            //ratio = 1/curDistance;
-            ratio = 1-(round(curDistance)/1000);
-            //int newZoom = (int)floor(5000 * ratio);
-            int newZoom = int(floor((10*ratio) + 15));
-            newZoom > 19 ? newZoom = 19 : newZoom = newZoom;
-            //zoom = (int)floor(5000 * ratio);
-            if(newZoom != zoom){
-                //myMap.GetMapData(-30.057637, -51.171501,newZoom);
-                zoom = newZoom;
-                myMap.curZoom = zoom;
-                Map::zoom = zoom;
-                myMap.FillMapTiles();
-                TrajParser::ResetScale(startPos.z, startPos.x, &TrajList);
-                
-                //really need to put this in a function
-                float posX = Map::long2tilexpx(startPos.x, Map::zoom);
-                float posY = Map::lat2tileypx(startPos.z, Map::zoom);
-                
-                float translatedX = (posX *200) -100;
-                float translatedY = (posY *200) -100;
-                
-                trajMatrix = glm::mat4(1.0);
-                trajMatrix = glm::translate(trajMatrix, glm::vec3(translatedX,-99.0,translatedY));
-                trajMatrix = glm::rotate<float>(trajMatrix, -M_PI, glm::vec3(1.0,0.0,0.0));
-            }
-            distance = curDistance;
-        }
+//        if(abs(distance-curDistance) > 100){
+//            //ratio = 1/curDistance;
+//            ratio = 1-(round(curDistance)/1000);
+//            //int newZoom = (int)floor(5000 * ratio);
+//            int newZoom = int(floor((10*ratio) + 15));
+//            newZoom > 19 ? newZoom = 19 : newZoom = newZoom;
+//            //zoom = (int)floor(5000 * ratio);
+//            if(newZoom != zoom){
+//                //myMap.GetMapData(-30.057637, -51.171501,newZoom);
+//                zoom = newZoom;
+//                myMap.curZoom = zoom;
+//                Map::zoom = zoom;
+//                myMap.FillMapTiles();
+//                TrajParser::ResetScale(startPos.z, startPos.x, &TrajList);
+//                
+//                //really need to put this in a function
+//                float posX = Map::long2tilexpx(startPos.x, Map::zoom);
+//                float posY = Map::lat2tileypx(startPos.z, Map::zoom);
+//                
+//                float translatedX = (posX *200) -100;
+//                float translatedY = (posY *200) -100;
+//                
+//                trajMatrix = glm::mat4(1.0);
+//                trajMatrix = glm::translate(trajMatrix, glm::vec3(translatedX,-99.0,translatedY));
+//                trajMatrix = glm::rotate<float>(trajMatrix, -M_PI, glm::vec3(1.0,0.0,0.0));
+//            }
+//            distance = curDistance;
+//        }
         
         if(GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_T)){
             xtrans += 0.001;
