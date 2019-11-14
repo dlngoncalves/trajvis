@@ -9,6 +9,8 @@ GLSLShader::GLSLShader(void)
 	_shaders[VERTEX_SHADER]=0;
 	_shaders[FRAGMENT_SHADER]=0;
 	_shaders[GEOMETRY_SHADER]=0;
+    _shaders[TESSELATION_CONTROL]=0;
+    _shaders[TESSELATION_EVALUATION]=0;
 	_attributeList.clear();
 	_uniformLocationList.clear();
 }
@@ -56,7 +58,13 @@ void GLSLShader::CreateAndLinkProgram() {
 	if (_shaders[GEOMETRY_SHADER] != 0) {
 		glAttachShader (_program, _shaders[GEOMETRY_SHADER]);
 	}
-	
+    if (_shaders[TESSELATION_CONTROL] != 0) {
+        glAttachShader (_program, _shaders[TESSELATION_CONTROL]);
+    }
+    if (_shaders[TESSELATION_EVALUATION] != 0) {
+        glAttachShader (_program, _shaders[TESSELATION_EVALUATION]);
+    }
+    
 	//link and check whether the program links fine
 	GLint status;
 	glLinkProgram (_program);
@@ -74,6 +82,8 @@ void GLSLShader::CreateAndLinkProgram() {
 	glDeleteShader(_shaders[VERTEX_SHADER]);
 	glDeleteShader(_shaders[FRAGMENT_SHADER]);
 	glDeleteShader(_shaders[GEOMETRY_SHADER]);
+    glDeleteShader(_shaders[TESSELATION_CONTROL]);
+    glDeleteShader(_shaders[TESSELATION_EVALUATION]);
 }
 
 void GLSLShader::Use() {

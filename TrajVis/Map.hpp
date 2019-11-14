@@ -15,19 +15,27 @@
 #include <glm/glm.hpp>
 #include <vector>
 
-#define TILEMAP_SIZE 5
+#define TILEMAP_SIZE 9
 //class or struct?
 struct Tile
 {
     public :
     float mapSurface[18]{
         //maybe use 1 and scale the tiles?
-        -100.0f, -100.0f, -100.0f,
-        -100.0f, -100.0f,  100.0f,
-        100.0f, -100.0f, -100.0f,
-        100.0f, -100.0f, -100.0f,
-        -100.0f, -100.0f,  100.0f,
-        100.0f, -100.0f,  100.0f
+//        -100.0f, -100.0f, -100.0f,
+//        -100.0f, -100.0f,  100.0f,
+//        100.0f, -100.0f, -100.0f,
+//        100.0f, -100.0f, -100.0f,
+//        -100.0f, -100.0f,  100.0f,
+//        100.0f, -100.0f,  100.0f
+        
+        -100.0f, 0.0f, -100.0f,
+        -100.0f, 0.0f,  100.0f,
+        100.0f,  0.0f, -100.0f,
+        100.0f,  0.0f, -100.0f,
+        -100.0f, 0.0f,  100.0f,
+        100.0f,  0.0f,  100.0f
+
     };
     
     float mapUV[12]{
@@ -48,15 +56,23 @@ struct Tile
     };
     void SetupData();
     
+    static float recalculateScale(float lat,int newZoom);
+    static float tileScale;
     //void GetMapData(float lat, float lon, int zoomLevel);
     //bad names because the second xy pair refers to the curent tiles position on the grid, not to the texture
     void GetMapData(int x, int y, int curX, int curY, int zoom);
+    void GetHeightData(int x, int y, int curX, int curY, int zoom);
     
     GLuint vertexBufferObject;
     GLuint textureBuffer;
+    GLuint heighBuffer;
     GLuint vertexArrayObject;
     GLuint textureID;
     unsigned char* image_data;
+    
+    //we dont need a separate buffer for height coordinates, just for the heightmap data itself
+    GLuint height_texID;
+    unsigned char* height_data;
     
     //what are those coordinates? doesnt make sense to be the slippy name because that is always changing based on zoom level
     int x;

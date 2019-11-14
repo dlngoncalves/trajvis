@@ -23,6 +23,6 @@ void main () {
     //vertColorTemp = vec3(vertex_temp.r,vertex_temp.g,vertex_temp.b);
     //vertColorTemp = vec3(1.0,1.0,0.0);
     vertColorTemp_g = vertex_temp;
-	gl_Position = projection_mat * view_mat * model_mat * vec4(vertex_position,1.0);
-    
+	//gl_Position = projection_mat * view_mat * model_mat * vec4(vertex_position,1.0);
+    gl_Position = vec4(vertex_position,1.0);
 }
