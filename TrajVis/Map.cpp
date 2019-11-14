@@ -19,7 +19,7 @@
 //"https://api.mapbox.com/v4/mapbox.satellite/1/0/0@2x.jpg90?access_token=pk.eyJ1Ijoic2Vub3JzcGFya2xlIiwiYSI6ImNqdXU4ODQ2NTBnMDk0ZG1obDA4bWUzbmUifQ.gviggw2S34VwFVxshcbj_A"
 //"https://api.mapbox.com/v4/mapbox.satellite/16/23451/38510@2x.jpg90?access_token=pk.eyJ1Ijoic2Vub3JzcGFya2xlIiwiYSI6ImNqdXU4ODQ2NTBnMDk0ZG1obDA4bWUzbmUifQ.gviggw2S34VwFVxshcbj_A
 
-std::string url = "https://api.mapbox.com/v4/mapbox.terrain-rgb/"; //changed here for streets, can make user choose
+std::string url = "https://api.mapbox.com/v4/mapbox.streets/"; //changed here for streets, can make user choose
 
 std::string urlHeight = "https://api.mapbox.com/v4/mapbox.terrain-rgb/"; //changed here for streets, can make user choose
 
@@ -61,6 +61,7 @@ Map::Map(float newLat, float newLon, int zoom, GLSLShader &shader) : myShader(sh
             int yOffset = (j - tileCenter);
             
             tileMap[i][j].GetMapData(xCenter, yCenter,i,j, curZoom);
+            tileMap[i][j].GetHeightData(xCenter, yCenter,i,j, curZoom);
             tileMap[i][j].modelMatrix = glm::mat4(1.0);
             tileMap[i][j].modelMatrix = glm::rotate<float>(tileMap[i][j].modelMatrix, -M_PI/2, glm::vec3(0.0,1.0,0.0));
             
@@ -109,6 +110,9 @@ void Tile::SetupData()
     
     glActiveTexture(GL_TEXTURE0);
     glGenTextures(1, &textureID);
+
+    glActiveTexture(GL_TEXTURE1);
+    glGenTextures(1, &height_texID);
     
     //there are two separate things to track
     //the modelmatrix/position for each tile
@@ -145,6 +149,7 @@ void Map::SetupData()
     
     glActiveTexture(GL_TEXTURE0);
     glGenTextures(1, &textureID);
+    
 }
 
 //from https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#X_and_Y
@@ -219,8 +224,21 @@ void Map::FillMapTiles()
     for(int i = 0; i < TILEMAP_SIZE; i++){
         for(int j = 0; j < TILEMAP_SIZE; j++){
             tileMap[i][j].GetMapData(xCenter, yCenter,i,j, curZoom);
+            tileMap[i][j].GetHeightData(xCenter, yCenter,i,j, curZoom);
         }
     }
+}
+
+float Tile::recalculateScale(float lat,int newZoom)
+{
+    int earthRadius = 6378137;
+    double originShift = 2 * M_PI * earthRadius;// /2;
+    int exp = 2 << Map::zoom-1;
+    double cosine = cos(lat);
+    double tileDist = (originShift * cosine) / exp;
+    double pixelDist = tileDist / 512;
+    double pixelWorld = ldexp(200, -9);// * 200;
+    return (float)pixelWorld/pixelDist;
 }
 
 //maybe rename get map texture ?
@@ -237,11 +255,11 @@ void Tile::GetMapData(int x, int y, int curX, int curY, int zoom)
     
     
     std::string newUrl = url + to_string(zoom) + "/";
-    std::string tile = to_string(x+xOffset) + "/" + to_string(y+yOffset) + "@2x.pngraw";
+    std::string tile = to_string(x+xOffset) + "/" + to_string(y+yOffset) + "@2x.jpg90";
     newUrl = newUrl + tile + apikey;
     
     //added streets to filename so we can download those
-    std::string fileName = to_string(x+xOffset) + "-" + to_string(y+yOffset) + "-" + to_string(zoom) + "-" + "height" + ".png";
+    std::string fileName = to_string(x+xOffset) + "-" + to_string(y+yOffset) + "-" + to_string(zoom) + "-" + "streets" + ".jpg";
     
     FILE *image = std::fopen(fileName.c_str(), "rb");
     
@@ -275,6 +293,55 @@ void Tile::GetMapData(int x, int y, int curX, int curY, int zoom)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 }
 
+void Tile::GetHeightData(int x, int y, int curX, int curY, int zoom)
+{
+    
+    //we assume the grid is odd x odd
+    int tileCenter = (int)floor(TILEMAP_SIZE/2);
+    
+    //dont need to be abs because we can subtract
+    int xOffset = curX - tileCenter;
+    int yOffset = curY - tileCenter;
+    
+    
+    std::string newUrl = urlHeight + to_string(zoom) + "/";
+    std::string tile = to_string(x+xOffset) + "/" + to_string(y+yOffset) + "@2x.pngraw";
+    newUrl = newUrl + tile + apikey;
+    
+    //added streets to filename so we can download those
+    std::string fileName = to_string(x+xOffset) + "-" + to_string(y+yOffset) + "-" + to_string(zoom) + "-" + "height" + ".png";
+    
+    FILE *image = std::fopen(fileName.c_str(), "rb");
+    
+    if(image == NULL){
+        image = std::fopen(fileName.c_str(), "wb");
+        CURL *handle = curl_easy_init();
+        if(handle){
+            CURLcode res;
+            curl_easy_setopt(handle, CURLOPT_URL,newUrl.c_str());
+            curl_easy_setopt(handle,CURLOPT_WRITEDATA,image);
+            curl_easy_setopt(handle,CURLOPT_WRITEFUNCTION,WriteCallBack);
+            res = curl_easy_perform(handle);
+        }
+    }
+    std::fclose(image);
+    
+    int ximg,yimg,n;
+    int force_channels = 4;
+    height_data = stbi_load(fileName.c_str(), &ximg, &yimg, &n, force_channels);
+    
+    glActiveTexture(GL_TEXTURE1);
+    //glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D, height_texID);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,ximg,yimg,0,GL_RGBA,GL_UNSIGNED_BYTE,height_data);
+    
+    //glTexSubImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, ximg, yimg, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+}
 
 //could just preemptively load all zoom levels and store in 3d texture
 //that would be for each tile

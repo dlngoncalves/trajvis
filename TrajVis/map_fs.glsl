@@ -24,6 +24,18 @@
 in vec3 colour; // i made this up in the tess. evaluation shader
 out vec4 fragcolour;
 
+in vec2 texcoords;
+
+uniform sampler2D curTexture;
+uniform sampler2D heightMapTex;
+
 void main () {
-    fragcolour = vec4 (colour, 1.0);
+    
+    //fragcolour = vec4 (colour, 1.0);
+    fragcolour = texture(curTexture,texcoords);
+    
+    //fragcolour = texture(heightMapTex,texcoords);
+    //fragcolour = vec4(texcoords.x,texcoords.y,0.0,1.0);
+    
+    //fragcolour = vec4(1.0,1.0,0.0,1.0);
 }

@@ -11,8 +11,8 @@ in vec2 texcoords[];
 out vec3 evaluationpoint_wor[];
 out vec2 texeval[];
 
-uniform float tess_fac_inner = 16.0; // controlled by keyboard buttons
-uniform float tess_fac_outer = 16.0; // controlled by keyboard buttons
+uniform float tess_fac_inner = 32.0; // controlled by keyboard buttons
+uniform float tess_fac_outer = 32.0; // controlled by keyboard buttons
 
 void main () {
     evaluationpoint_wor[gl_InvocationID] = controlpoint_wor[gl_InvocationID];
