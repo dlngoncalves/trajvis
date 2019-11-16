@@ -439,6 +439,20 @@ void TrajParser::ResetScale(double lat, double lon, std::vector<TrajParser> *tra
     }
 }
 
+float TrajParser::simpleDistance(glm::vec2 pos1, glm::vec2 pos2)
+{
+    float distLat = 12430 * (abs(pos1.y - pos2.y)/180);
+    float distLon = 24901 * (abs(pos1.x - pos2.x)/360) * cos((pos1.y+pos2.y)/2);
+    
+    return sqrt(pow(distLat, 2) + pow(distLon,2));
+    
+}
+
+float TrajParser::timeDelta(const TrajSeg &pos1, const TrajSeg &pos2)
+{
+    return 0;
+}
+
 //tile bounds starts at tileid * tilesize and goes to tileid+1 * tilesize
 //the part used is the size, which is 
 void TrajParser::SetupData()
