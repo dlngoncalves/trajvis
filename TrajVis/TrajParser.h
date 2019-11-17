@@ -70,10 +70,15 @@ public:
     
     static void ResetScale(double lat, double lon, std::vector<TrajParser> *trajectories);// not really reset in the sense of restarting, but of setting again
     
-    float simpleDistance(glm::vec2 pos1, glm::vec2 pos2);
+	//probably wont be static
+    static float simpleDistance(glm::vec2 pos1, glm::vec2 pos2);
     
-    float timeDelta(const TrajSeg &pos1, const TrajSeg &pos2);
+	//probably wont be static
+    static float timeDelta(const TrajSeg &pos1, const TrajSeg &pos2);
     
+	//probably wont be static
+	static float getInstantSpeed(const TrajSeg &seg1, const TrajSeg &seg2);
+
     TrajParser(std::string file,GLSLShader &shader) : myShader(shader)
     {
         loadTrajectory(file);

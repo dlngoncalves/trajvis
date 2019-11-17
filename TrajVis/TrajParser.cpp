@@ -17,6 +17,8 @@
 #include <vector>
 #include <sqlite3.h>
 #include "Map.hpp"
+#include <ctime>
+#include <iomanip>
 
 glm::vec3 TrajParser::basePosition;
 float TrajParser::relativeScale = 1;
@@ -450,7 +452,39 @@ float TrajParser::simpleDistance(glm::vec2 pos1, glm::vec2 pos2)
 
 float TrajParser::timeDelta(const TrajSeg &pos1, const TrajSeg &pos2)
 {
-    return 0;
+	std::time_t time1;
+	std::time_t time2;
+
+	std::tm date;
+
+	std::istringstream ss1(pos1.timeStamp);
+	ss1 >> std::get_time(&date, "%Y-%m-%dT%T%z");
+	time1 = mktime(&date);
+
+	std::istringstream ss2(pos2.timeStamp);
+	ss2 >> std::get_time(&date, "%Y-%m-%dT%T%z");
+	time2 = mktime(&date);
+
+	double timeSeconds = difftime(time2, time1);// does order matter? 
+	return (float)timeSeconds; 
+}
+
+float TrajParser::getInstantSpeed(const TrajSeg &seg1, const TrajSeg &seg2)
+{
+	//we get the distance in meters from both points AND the time it took for the distance to be covered
+	//should be pretty simple. speed will then be in meters per second. can convert to kmh.
+
+	glm::vec2 pos1 = glm::vec2(seg1.lon, seg1.lat);
+	glm::vec2 pos2 = glm::vec2(seg2.lon, seg2.lat);
+	float distanceInMeters = 1000* TrajParser::simpleDistance(pos1, pos2);
+
+	float timeDifference = TrajParser::timeDelta(seg1, seg2);
+
+	float speedInMetersPerSecond = distanceInMeters / timeDifference;
+
+	float speedInKMH = speedInMetersPerSecond * 3.6;
+
+	return speedInKMH;
 }
 
 //tile bounds starts at tileid * tilesize and goes to tileid+1 * tilesize
