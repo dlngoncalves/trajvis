@@ -2,6 +2,7 @@
 *.log
 *.xcodeproj/
 *.sln
+*.db
 *.vcxproj
 *.vcxproj.filters
 *vcxproj.user
