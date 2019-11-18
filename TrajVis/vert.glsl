@@ -3,12 +3,14 @@ const float pi = 3.14159;
 
 layout (location = 0) in vec3 vertex_position;
 layout (location = 1) in vec3 vertex_temp;
+layout (location = 2) in float speed;
 
 uniform mat4 projection_mat, view_mat, model_mat;
 
 
 out vec3 position_eye;
 out vec3 vertColorTemp_g;
+out float speed_g;
 //, normal_eye; //not using normals for anything now
 
 
@@ -23,6 +25,7 @@ void main () {
     //vertColorTemp = vec3(vertex_temp.r,vertex_temp.g,vertex_temp.b);
     //vertColorTemp = vec3(1.0,1.0,0.0);
     vertColorTemp_g = vertex_temp;
+    speed_g = speed;
 	//gl_Position = projection_mat * view_mat * model_mat * vec4(vertex_position,1.0);
     gl_Position = vec4(vertex_position,1.0);
 }

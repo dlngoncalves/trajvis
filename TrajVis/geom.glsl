@@ -7,9 +7,11 @@ layout (lines) in;
 layout (triangle_strip, max_vertices = 4) out;
 
 in vec3 vertColorTemp_g[];
+in float speed_g[];
 out vec3 vertColorTemp;
 
 uniform mat4 projection_mat, view_mat, model_mat;
+uniform float averageSpeed;
 
 void main() {
     //must figure out why it is a bit view dependent
@@ -17,48 +19,55 @@ void main() {
     
     float constantHeight = gl_in[1].gl_Position.y;
     
+    
+    vec3 speedColor = vec3((speed_g[0]/averageSpeed),0.1,0.1);
+    
     vec4 newPos = gl_in[1].gl_Position;
-    newPos.x -= 2;
+    newPos.x -= 2 + (speed_g[1]/averageSpeed);
     newPos.y = constantHeight;
     gl_Position = projection_mat * view_mat * model_mat * newPos;
     //gl_Position = projection_mat * view_mat * model_mat * gl_in[1].gl_Position;
     //gl_Position.x -= 5;
     //gl_Position.z = constantHeight;
     //gl_Position.z -= 1;
-    vertColorTemp = vertColorTemp_g[0];
+//    vertColorTemp = vertColorTemp_g[0];
+    vertColorTemp = speedColor;
     EmitVertex();
 
     newPos = gl_in[0].gl_Position;
-    newPos.x -=2;
+    newPos.x -=2 + (speed_g[0]/averageSpeed);
     newPos.y = constantHeight;
     gl_Position = projection_mat * view_mat * model_mat * newPos;
     //gl_Position = projection_mat * view_mat * model_mat * gl_in[0].gl_Position;
     //gl_Position.x -= 5;
     //gl_Position.z = constantHeight;
     //gl_Position.z += 1;
-    vertColorTemp = vertColorTemp_g[0];
+//    vertColorTemp = vertColorTemp_g[0];
+    vertColorTemp = speedColor;
     EmitVertex();
     
     //EndPrimitive();
     
     newPos = gl_in[1].gl_Position;
-    newPos.x += 2;
+    newPos.x += 2 + (speed_g[1]/averageSpeed);
     newPos.y = constantHeight;
     gl_Position = projection_mat * view_mat * model_mat * newPos;
     //gl_Position = projection_mat * view_mat * model_mat * gl_in[1].gl_Position;
     //gl_Position.x += 5;
     //gl_Position.z = constantHeight;
-    vertColorTemp = vertColorTemp_g[0];
+//    vertColorTemp = vertColorTemp_g[0];
+    vertColorTemp = speedColor;
     EmitVertex();
     
     newPos = gl_in[0].gl_Position;
-    newPos.x +=2;
+    newPos.x +=2 + (speed_g[0]/averageSpeed);
     newPos.y = constantHeight;
     gl_Position = projection_mat * view_mat * model_mat * newPos;
     //gl_Position = projection_mat * view_mat * model_mat * gl_in[0].gl_Position;
     //gl_Position.x += 5;
     //gl_Position.z = constantHeight;
-    vertColorTemp = vertColorTemp_g[0];
+//    vertColorTemp = vertColorTemp_g[0];
+    vertColorTemp = speedColor;
     EmitVertex();
     
     

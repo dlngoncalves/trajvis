@@ -85,8 +85,8 @@ glm::vec3 Weather::getWeatherColor(float temperature)
     //adapted from https://stackoverflow.com/questions/20792445/calculate-rgb-value-for-a-range-of-values-to-create-heat-map
     //for now the range will be 20 to 25 - if outside just clamp
     
-    float minimum = 0.0f;
-    float maximum = 30.0f;
+    float minimum = -40.0f;
+    float maximum = 50.0f;
     float ratio = 2 * (temperature-minimum) / (maximum - minimum);
     float b = 255*(1 - ratio);
     float r = 255*(ratio - 1);

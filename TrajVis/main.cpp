@@ -151,14 +151,6 @@ int main () {
 /*------------------------------start GL context------------------------------*/
 	assert (start_gl ());
 
-	//std::string time1 = "2019-11-15T03:36:58Z";
-	//std::string time2 = "2019-11-14T03:36:58Z";
-	TrajSeg point1{ 0.0,"2019-04-11T22:59:30Z",-30.0608950,-51.1736290,NULL };
-	TrajSeg point2{ 0.0,"2019-04-11T23:02:29Z",-30.0598430,-51.1748410,NULL };
-
-
-	float speed = TrajParser::getInstantSpeed(point1, point2);
-
     
 	camera.cameraPosition = TrajParser::basePosition;
     //camera.cameraPosition.z = 100;
@@ -190,6 +182,7 @@ int main () {
     firstPassShader.AddUniform("view_mat");
     firstPassShader.AddUniform("projection_mat");
     firstPassShader.AddUniform("model_mat");
+    firstPassShader.AddUniform("averageSpeed");
     firstPassShader.UnUse();
     
     GLSLShader mapShader;
@@ -231,7 +224,7 @@ int main () {
 //    TrajParser trajetory3("trajectories/walk_17.csv",firstPassShader);
 //    TrajParser trajetory4("trajectories/walk_20.csv",firstPassShader);
     Map::zoom = 9;
-    std::vector<TrajParser> TrajList = TrajParser::LoadTrajDescription("trajectories/trajectories.txt",firstPassShader);
+    std::vector<TrajParser> TrajList = TrajParser::LoadTrajDescription("trajectories/trajectories2.txt",firstPassShader);
     
     
 //    TrajList.push_back(trajetory);
@@ -442,6 +435,7 @@ int main () {
         
         //shouldn this be an auto &?
         for(auto curTraj : TrajList){
+            glUniform1f(firstPassShader("averageSpeed"), curTraj.averageSpeed);
             glBindVertexArray (curTraj.vertexArrayObject);
             glDrawArrays (GL_LINE_STRIP, 0, (int)curTraj.positions.size());
             //glDrawArrays (GL_LINE_STRIP, 0, 1000);

@@ -83,6 +83,10 @@ public:
 	//probably wont be static
 	static float getInstantSpeed(const TrajSeg &seg1, const TrajSeg &seg2);
 
+    void SetSpeed();
+    
+    void SetAverageSpeed();
+    
     TrajParser(std::string file,GLSLShader &shader) : myShader(shader)
     {
         loadTrajectory(file);
@@ -123,7 +127,7 @@ public:
     GLuint vertexBufferObject;
     GLuint weatherBufferObject;
     GLuint vertexArrayObject;
-    
+    GLuint speedArrayObject;
     void SetupData();
 };
 

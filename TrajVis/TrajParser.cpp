@@ -78,9 +78,12 @@ static int trajSegCallback(void *Trajectory, int argc, char **argv, char **azCol
         if(strcmp(azColName[i],"elevation") == 0 ){
             auxSeg.elevation = atof(argv[i]);
         }
-        
+        if(strcmp(azColName[i],"instantspeed") == 0 ){
+            auxSeg.speed = atof(argv[i]);
+        }
+
         columnCount++;
-        if(columnCount == 5){
+        if(columnCount == 7){
             if(TrajParser::basePosition.x == 0 && TrajParser::basePosition.y == 0 && TrajParser::basePosition.z == 0){
                 
                 int x = Map::long2tilex(auxSeg.lon,Map::zoom);
@@ -108,6 +111,7 @@ static int trajSegCallback(void *Trajectory, int argc, char **argv, char **azCol
             columnCount = 0;
         }
     }
+    traj->SetAverageSpeed();
     
     return 0;
 }
@@ -119,13 +123,13 @@ void insertTrajectory(TrajParser &curTraj,std::string trajName, std::string user
     int rc;
     char *zErrMsg = 0;
     
-    query = "INSERT INTO TRAJECTORY (trajectoryname,user) VALUES(" + trajName + "," + user + ");";
+    query = "INSERT INTO TRAJECTORY (trajectoryname,user,averagespeed) VALUES(" + trajName + "," + user + "," + std::to_string(curTraj.averageSpeed) + ");";
     rc = sqlite3_exec(db, query.c_str(),0, 0, &zErrMsg);
     
     for(auto curSeg : curTraj.segList){
-        query = "INSERT INTO TRAJSEG(latitude, longitude, temperature, datetime, elevation, trajectoryname) VALUES (";
+        query = "INSERT INTO TRAJSEG(latitude, longitude, temperature, datetime, elevation, trajectoryname,instantspeed) VALUES (";
         query = query + std::to_string(curSeg.lat) + "," + std::to_string(curSeg.lon) + "," + std::to_string(curSeg.segWeather.temperature);
-        query = query + ", '" + curSeg.timeStamp + "' ," + std::to_string(curSeg.elevation) + " ," + trajName + ");";
+        query = query + ", '" + curSeg.timeStamp + "' ," + std::to_string(curSeg.elevation) + " ," + trajName + " ," + std::to_string(curSeg.speed) + ");";
         rc = sqlite3_exec(db, query.c_str(),0, 0, &zErrMsg);
     }
 }
@@ -257,6 +261,8 @@ void TrajParser::loadTrajectory(std::string file)
             lineCount++;
         }
         
+        SetSpeed();
+        SetAverageSpeed();
         GetTrajWeatherData();
         SetupData();
     }
@@ -476,15 +482,21 @@ float TrajParser::timeDelta(const TrajSeg &pos1, const TrajSeg &pos2)
 	std::time_t time1;
 	std::time_t time2;
 
-	std::tm date;
-
+	std::tm date1;
+    std::tm date2;
+    
 	std::istringstream ss1(pos1.timeStamp);
-	ss1 >> std::get_time(&date, "%Y-%m-%dT%T%z");
-	time1 = mktime(&date);
+	//ss1 >> std::get_time(&date1, "%Y-%m-%dT%T%z");
+    ss1 >> std::get_time(&date1, "%Y-%m-%dT%H:%M:%S%z");
+    date1.tm_isdst = 0;
+	time1 = mktime(&date1);
 
 	std::istringstream ss2(pos2.timeStamp);
-	ss2 >> std::get_time(&date, "%Y-%m-%dT%T%z");
-	time2 = mktime(&date);
+	//ss2 >> std::get_time(&date2, "%Y-%m-%dT%T%z");
+    //ss2 >> std::get_time(&date2, "%Y-%m-%dT%T%z");
+    ss2 >> std::get_time(&date2, "%Y-%m-%dT%H:%M:%S%z");
+    date2.tm_isdst = 0;
+	time2 = mktime(&date2);
 
 	double timeSeconds = difftime(time2, time1);// does order matter? 
 	return (float)timeSeconds; 
@@ -500,7 +512,11 @@ float TrajParser::getInstantSpeed(const TrajSeg &seg1, const TrajSeg &seg2)
 	float distanceInMeters = TrajParser::simpleDistance(pos1, pos2);
 
 	float timeDifference = TrajParser::timeDelta(seg1, seg2);
-
+    
+    if(fabs(timeDifference-0) <= FLT_EPSILON){//cant have infinity speed
+        return 0.0;
+    }
+    
 	float speedInMetersPerSecond = distanceInMeters / timeDifference;
 
 	float speedInKMH = speedInMetersPerSecond * 3.6;
@@ -524,6 +540,16 @@ void TrajParser::SetupData()
     glGenBuffers(1, &weatherBufferObject);
     glBindBuffer(GL_ARRAY_BUFFER, weatherBufferObject);
     glBufferData(GL_ARRAY_BUFFER, tempColors.size() * sizeof(glm::vec3), (float *)glm::value_ptr(tempColors.front()), GL_STATIC_DRAW);
+
+    //Cant believe theres no better way to do this in c++
+    std::vector<float> speeds;
+    for(auto &seg : segList){
+        speeds.push_back(seg.speed);
+    }
+    
+    glGenBuffers(1, &speedArrayObject);
+    glBindBuffer(GL_ARRAY_BUFFER, speedArrayObject);
+    glBufferData(GL_ARRAY_BUFFER, speeds.size() * sizeof(float), speeds.data(), GL_STATIC_DRAW);
     
     glGenVertexArrays(1, &vertexArrayObject);
     glBindVertexArray(vertexArrayObject);
@@ -534,8 +560,12 @@ void TrajParser::SetupData()
     glBindBuffer(GL_ARRAY_BUFFER, weatherBufferObject);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
     
+    glBindBuffer(GL_ARRAY_BUFFER, speedArrayObject);
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 0, 0);
+    
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
 }
 
 void TrajParser::GetTrajWeatherData()
@@ -551,6 +581,29 @@ void TrajParser::GetTrajWeatherData()
         segList[i].segWeather = segList[0].segWeather;
     }
     
+}
+
+void TrajParser::SetSpeed()
+{
+    for(int i = 0; i < segList.size(); i++){
+        if(i == segList.size() -1){
+            segList[i].speed = 0.0;
+        }
+        else{
+            segList[i].speed = TrajParser::getInstantSpeed(segList[i], segList[i+1]);
+        }
+    }
+}
+
+//could do this inside the other function
+void TrajParser::SetAverageSpeed()
+{
+    averageSpeed = 0;
+    for(auto &seg : segList){
+        averageSpeed += seg.speed;
+    }
+    
+    averageSpeed /= segList.size();
 }
 
 //in time do a binary search of the trajectory
