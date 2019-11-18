@@ -443,11 +443,32 @@ void TrajParser::ResetScale(double lat, double lon, std::vector<TrajParser> *tra
 
 float TrajParser::simpleDistance(glm::vec2 pos1, glm::vec2 pos2)
 {
-    float distLat = 12430 * (abs(pos1.y - pos2.y)/180);
-    float distLon = 24901 * (abs(pos1.x - pos2.x)/360) * cos((pos1.y+pos2.y)/2);
-    
-    return sqrt(pow(distLat, 2) + pow(distLon,2));
-    
+	//this first calculation is not very precise, so will use the other one
+    //double distlat = 12430 * (abs(pos1.y - pos2.y)/180);
+    //double distlon = 24901 * (abs(pos1.x - pos2.x)/360) * cos((pos1.y+pos2.y)/2 * (M_PI/180));
+    //double distance = sqrt(pow(distlat, 2) + pow(distlon,2));
+	//double distInMeters = firstDistance * 1000;
+
+	//changing distance calculation to something a bit different for a test
+	//basically the same thing as the one from mapbox described on their blog
+
+	double cos1 = cos(pos1.y * M_PI / 180);
+	double cos2 = 2 * cos1 * cos1 - 1;
+	double cos3 = 2 * cos1 * cos2 - cos1;
+	double cos4 = 2 * cos1 * cos3 - cos2;
+	double cos5 = 2 * cos1 * cos4 - cos3;
+
+	//this assumes km but we are returning in meters
+	
+	double K1 = (111.13209 - 0.56605 * cos2 + 0.0012 * cos4);
+	double K2 = (111.41513 * cos1 - 0.09455 * cos3 + 0.00012 * cos5);
+
+	double distance = sqrt( pow(K1*(pos1.y - pos2.y), 2) + pow(K2*(pos1.x - pos2.x), 2) );
+
+	double distInMeters = distance * 1000;
+	
+	return (float)distInMeters;
+	//return (float)distance;
 }
 
 float TrajParser::timeDelta(const TrajSeg &pos1, const TrajSeg &pos2)
@@ -476,7 +497,7 @@ float TrajParser::getInstantSpeed(const TrajSeg &seg1, const TrajSeg &seg2)
 
 	glm::vec2 pos1 = glm::vec2(seg1.lon, seg1.lat);
 	glm::vec2 pos2 = glm::vec2(seg2.lon, seg2.lat);
-	float distanceInMeters = 1000* TrajParser::simpleDistance(pos1, pos2);
+	float distanceInMeters = TrajParser::simpleDistance(pos1, pos2);
 
 	float timeDifference = TrajParser::timeDelta(seg1, seg2);
 
