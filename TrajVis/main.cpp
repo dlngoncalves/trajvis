@@ -222,7 +222,7 @@ int main () {
 //    TrajParser trajetory2("trajectories/walk_16.csv",firstPassShader);
 //    TrajParser trajetory3("trajectories/walk_17.csv",firstPassShader);
 //    TrajParser trajetory4("trajectories/walk_20.csv",firstPassShader);
-    Map::zoom = 15;
+    Map::zoom = 9;
     std::vector<TrajParser> TrajList = TrajParser::LoadTrajDescription("trajectories/trajectories.txt",firstPassShader);
     
     
