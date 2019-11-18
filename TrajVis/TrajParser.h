@@ -28,6 +28,7 @@ struct TrajSeg
     std::string timeStamp;
     float lat;
     float lon;
+    float speed;
     //wonder if I should add a xyz position here?
     //float temp;//temperature in celcius
     WeatherData segWeather;
@@ -56,6 +57,9 @@ protected:
     
 public:
     //TrajParser();
+    //we still dont have many properties concerning the whole trajectory --adding average speed here, could add temperature
+    float averageSpeed;
+    
     static glm::vec3 convertLatLon(TrajSeg &segment,glm::vec3 refPoint);
     
     glm::vec3 latLonToMeters(float lat, float lon, int zoom);
