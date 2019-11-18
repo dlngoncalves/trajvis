@@ -238,7 +238,7 @@ float Tile::recalculateScale(float lat,int newZoom)
     double tileDist = (originShift * cosine) / exp;
     double pixelDist = tileDist / 512;
     double pixelWorld = ldexp(200, -9);// * 200;
-    return (float)pixelWorld/pixelDist;
+    return abs((float)pixelWorld/pixelDist); //not sure if this should be absolute, but it would make sense
 }
 
 //maybe rename get map texture ?
