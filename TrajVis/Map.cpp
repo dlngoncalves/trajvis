@@ -259,7 +259,7 @@ void Tile::GetMapData(int x, int y, int curX, int curY, int zoom)
     newUrl = newUrl + tile + apikey;
     
     //added streets to filename so we can download those
-    std::string fileName = to_string(x+xOffset) + "-" + to_string(y+yOffset) + "-" + to_string(zoom) + "-" + "streets" + ".jpg";
+    std::string fileName = "images/" + to_string(x+xOffset) + "-" + to_string(y+yOffset) + "-" + to_string(zoom) + "-" + "streets" + ".jpg";
     
     FILE *image = std::fopen(fileName.c_str(), "rb");
     
@@ -309,7 +309,7 @@ void Tile::GetHeightData(int x, int y, int curX, int curY, int zoom)
     newUrl = newUrl + tile + apikey;
     
     //added streets to filename so we can download those
-    std::string fileName = to_string(x+xOffset) + "-" + to_string(y+yOffset) + "-" + to_string(zoom) + "-" + "height" + ".png";
+    std::string fileName = "images/" + to_string(x+xOffset) + "-" + to_string(y+yOffset) + "-" + to_string(zoom) + "-" + "height" + ".png";
     
     FILE *image = std::fopen(fileName.c_str(), "rb");
     
