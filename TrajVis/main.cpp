@@ -364,7 +364,14 @@ int main () {
         
 		_update_fps_counter (g_window);
 		
-        
+		glFinish();
+
+		GLuint query;
+		GLuint64 elapsed_time;
+
+		glGenQueries(1, &query);
+		glBeginQuery(GL_TIME_ELAPSED, query);
+
         mapShader.Use();
         glUniformMatrix4fv(mapShader("view_mat"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
         //glUniformMatrix4fv(mapShader("model_mat"), 1, GL_FALSE, glm::value_ptr(model_mat));
@@ -521,6 +528,14 @@ int main () {
         
 		// put the stuff we've been drawing onto the display
 		glfwSwapBuffers (g_window);
+
+		//in this case we are measuring the total rendering time- should separate by map and trajectories, 
+		//especially to measure things like tesselation, geometry generation and number of trajectories.
+		glFinish();
+
+		glEndQuery(GL_TIME_ELAPSED);
+		glGetQueryObjectui64v(query, GL_QUERY_RESULT, &elapsed_time);
+		printf("%f ms\n", (elapsed_time) / 1000000.0);
 	}
 	
 	// close GL context and any other GLFW resources
