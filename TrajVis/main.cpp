@@ -151,8 +151,16 @@ int main () {
 /*------------------------------start GL context------------------------------*/
 	assert (start_gl ());
 
+	//std::string time1 = "2019-11-15T03:36:58Z";
+	//std::string time2 = "2019-11-14T03:36:58Z";
+	TrajSeg point1{ 0.0,"2019-04-11T22:59:30Z",-30.0608950,-51.1736290,NULL };
+	TrajSeg point2{ 0.0,"2019-04-11T23:02:29Z",-30.0598430,-51.1748410,NULL };
+
+
+	float speed = TrajParser::getInstantSpeed(point1, point2);
+
     
-    camera.cameraPosition = TrajParser::basePosition;
+	camera.cameraPosition = TrajParser::basePosition;
     //camera.cameraPosition.z = 100;
     
     //a couple of things that need to be done regarding the camera
