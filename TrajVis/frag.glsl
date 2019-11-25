@@ -4,6 +4,8 @@
 in vec3 position_eye;
 in vec3 vertColorTemp;
 
+uniform int mode;
+
 layout (std140) uniform shader_traj_point
 {
     float lat;
