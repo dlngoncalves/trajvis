@@ -22,28 +22,25 @@ uniform mat4 projection_mat, view_mat, model_mat;
 uniform float averageSpeed;
 uniform int mode;
 
-void ShapeSpeed()
-{
-    
-}
-
-void ColorSpeed()
-{
-    
-}
-
-mat4 scale(float x, float y, float z){
-    return mat4(
-                vec4(x,   0.0, 0.0, 0.0),
-                vec4(0.0, y,   0.0, 0.0),
-                vec4(0.0, 0.0, z,   0.0),
-                vec4(0.0, 0.0, 0.0, 1.0)
-                );
-}
-
-//vec4 generateVertex(
-
 void main() {
+    
+    float thickness1;
+    float thickness2;
+    
+    vec3 color;
+    
+    if(mode == 1){
+        color = vertColorTemp_g[1];
+        thickness1 = 1;
+        thickness2 = 1;
+    }
+    else if(mode == 2){
+        thickness1 = speed_g[1]/averageSpeed;
+        thickness2 = speed_g[2]/averageSpeed;
+        color = vec3((speed_g[1]/averageSpeed),0.1,0.1);
+    }
+    
+    //vec3 speedColor = vec3((speed_g[0]/averageSpeed),0.1,0.1);
     
     //i need to clean this shader
     //or save working geometry generation to functions
@@ -82,8 +79,12 @@ void main() {
 //    vec2 miter1 = vec2(-tangent1.y,tangent1.x);
 //    vec2 miter2 = vec2(-tangent2.y,tangent2.x);
     
-    float length1 = 1/dot(miter1,normal2);
-    float length2 = 1/dot(miter2,normal2);
+    float length1 = thickness1/dot(miter1,normal2);
+    float length2 = thickness2/dot(miter2,normal2);
+    
+    //miter1 *= length1;
+    //miter2 *= length2;
+    
     //normal1 = vec2(-1.0,1.0);
     //normal2 = vec2(1.0,-1.0);
     //vec4 normal1 = gl_in[0].gl_Position;// + normal1Dist;
@@ -186,7 +187,7 @@ void main() {
 //    //gl_Position.x -= 5;
 //    //gl_Position.z = constantHeight;
 //    //gl_Position.z -= 1;
-    vertColorTemp = vec3(1.0,0.0,0.0);
+    vertColorTemp = color;
 ////    vertColorTemp = speedColor;
     EmitVertex();
 //    EndPrimitive();
@@ -203,7 +204,7 @@ void main() {
 //    //gl_Position.x -= 5;
 //    //gl_Position.z = constantHeight;
 //    //gl_Position.z += 1;
-    vertColorTemp = vec3(0.0,1.0,0.0);
+    vertColorTemp = color;
 ////    vertColorTemp = speedColor;
     EmitVertex();
 //    EndPrimitive();
@@ -223,7 +224,7 @@ void main() {
 //    //gl_Position = projection_mat * view_mat * model_mat * gl_in[1].gl_Position;
 //    //gl_Position.x += 5;
 //    //gl_Position.z = constantHeight;
-    vertColorTemp = vec3(0.0,0.0,1.0);
+    vertColorTemp = color;
 ////    vertColorTemp = speedColor;
     EmitVertex();
 //    EndPrimitive();
@@ -240,7 +241,7 @@ void main() {
 //    //gl_Position = projection_mat * view_mat * model_mat * gl_in[0].gl_Position;
 //    //gl_Position.x += 5;
 //    //gl_Position.z = constantHeight;
-    vertColorTemp = vec3(1.0,0.0,1.0);
+    vertColorTemp = color;
 ////    vertColorTemp = speedColor;
     EmitVertex();
     

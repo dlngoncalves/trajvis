@@ -136,7 +136,6 @@ void processs_keyboard(GLFWwindow *window, Camera *cam)
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_J))
         cam->cameraPosition.y -= cam->cameraSpeed;
-    
 }
 
 float cameraDistance(Camera *cam)
@@ -441,7 +440,7 @@ int main () {
         //trajMatrix = glm::translate(trajMatrix, glm::vec3(xtrans,0.0,ytrans));
         //trajMatrix = glm::rotate(trajMatrix, rotation, glm::vec3(0.0,1.0,0.0));
         glUniformMatrix4fv(firstPassShader("model_mat"), 1, GL_FALSE, glm::value_ptr(trajMatrix));
-        
+        glUniform1i(firstPassShader("mode"), mode);
         //shouldn this be an auto &?
         for(auto curTraj : TrajList){
             glUniform1f(firstPassShader("averageSpeed"), curTraj.averageSpeed);
@@ -507,6 +506,15 @@ int main () {
             //rotation -= 0.001;
         }
         
+        if(GLFW_PRESS == glfwGetKey(g_window,GLFW_KEY_1))
+        {
+            mode = 1;
+        }
+
+        if(GLFW_PRESS == glfwGetKey(g_window,GLFW_KEY_2))
+        {
+            mode = 2;
+        }
         
         if(GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_G)){
             ytrans += 10.0;
