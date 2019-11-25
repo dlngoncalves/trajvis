@@ -224,7 +224,8 @@ void Map::FillMapTiles()
     for(int i = 0; i < TILEMAP_SIZE; i++){
         for(int j = 0; j < TILEMAP_SIZE; j++){
             tileMap[i][j].GetMapData(xCenter, yCenter,i,j, curZoom);
-            tileMap[i][j].GetHeightData(xCenter, yCenter,i,j, curZoom);
+            if(Map::zoom <= 14)
+                tileMap[i][j].GetHeightData(xCenter, yCenter,i,j, curZoom);
         }
     }
 }
