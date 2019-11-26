@@ -57,25 +57,12 @@ void main() {
     normal2 = normalize(normal2);
     normal3 = normalize(normal3);
     
-    //vec2 tangent1 = normalize(normal2 + normal1);
-    //vec2 tangent2 = normalize(normal3 + normal2);
-    
     vec2 miter1 = normalize(normal2 + normal1);
     vec2 miter2 = normalize(normal3 + normal2);
     
-    //vec2 tangent1 = normalize(normalize(gl_in[2].gl_Position-gl_in[1].gl_Position).xz + normalize(gl_in[1].gl_Position-gl_in[0].gl_Position).xz);
-    //vec2 tangent2 = normalize(normalize(gl_in[3].gl_Position-gl_in[2].gl_Position).xz + normalize(gl_in[2].gl_Position-gl_in[1].gl_Position).xz);
-    
-//    vec2 miter1 = vec2(-tangent1.y,tangent1.x);
-//    vec2 miter2 = vec2(-tangent2.y,tangent2.x);
-    
-    //trying to avoid weirdness at end points
+    //trying to avoid weirdness at end points and some strange cases
     float length1 = clamp(thickness1/dot(miter1,normal2),0.01,1.0);
     float length2 = clamp(thickness2/dot(miter2,normal2),0.01,1.0);
-    
-    //miter1 *= length1;
-    //miter2 *= length2;
-    
     
     vec2 offset1;
     vec2 offset2;
@@ -92,9 +79,6 @@ void main() {
     
     vec4 newPos = gl_in[1].gl_Position;
     newPos.xz += offset1;
-    //    newPos.x -= miter1.x;// * length1;;
-    //    newPos.z -= miter1.y;// * length1;
-    //    newPos *= length1;
     newPos.y = constantHeight;
     gl_Position = projection_mat * view_mat * model_mat * newPos;
     vertColorTemp = color;
@@ -102,9 +86,6 @@ void main() {
     
     newPos = gl_in[1].gl_Position;
     newPos.xz += offset2;
-    //    newPos.x += miter1.x;// * length1;
-    //    newPos.z += miter1.y;// * length1;
-    //    newPos *= length1;
     newPos.y = constantHeight;
     gl_Position = projection_mat * view_mat * model_mat * newPos;
     vertColorTemp = color;
@@ -123,9 +104,6 @@ void main() {
     
     newPos = gl_in[2].gl_Position;
     newPos.xz += offset1;
-    //newPos.x -= miter2.x;// * length2;
-    //newPos.z -= miter2.y;// * length2;
-//    newPos *= length2;
     newPos.y = constantHeight;
     gl_Position = projection_mat * view_mat * model_mat * newPos;
     vertColorTemp = color;
@@ -133,9 +111,6 @@ void main() {
 
     newPos = gl_in[2].gl_Position;
     newPos.xz += offset2;
-//    newPos.x += miter2.x;// * length2;
-//    newPos.z += miter2.y;// * length2;
-//    newPos *= length2;
     newPos.y = constantHeight;
     gl_Position = projection_mat * view_mat * model_mat * newPos;
     vertColorTemp = color;
