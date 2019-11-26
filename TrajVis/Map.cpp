@@ -224,7 +224,8 @@ void Map::FillMapTiles()
     for(int i = 0; i < TILEMAP_SIZE; i++){
         for(int j = 0; j < TILEMAP_SIZE; j++){
             tileMap[i][j].GetMapData(xCenter, yCenter,i,j, curZoom);
-            tileMap[i][j].GetHeightData(xCenter, yCenter,i,j, curZoom);
+            if(Map::zoom <= 14)
+                tileMap[i][j].GetHeightData(xCenter, yCenter,i,j, curZoom);
         }
     }
 }
@@ -238,7 +239,7 @@ float Tile::recalculateScale(float lat,int newZoom)
     double tileDist = (originShift * cosine) / exp;
     double pixelDist = tileDist / 512;
     double pixelWorld = ldexp(200, -9);// * 200;
-    return (float)pixelWorld/pixelDist;
+    return abs((float)pixelWorld/pixelDist); //not sure if this should be absolute, but it would make sense
 }
 
 //maybe rename get map texture ?

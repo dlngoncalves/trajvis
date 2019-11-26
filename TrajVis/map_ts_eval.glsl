@@ -13,6 +13,8 @@ uniform sampler2D heightMapTex;
 
 uniform float elevationScale;
 
+uniform float curZoom;
+
 out vec3 colour;
 
 out vec2 texcoords;
@@ -47,7 +49,9 @@ void main () {
     //eu so mto burro pqp
     
     float height = (-10000 + (heightMap.r * 256  * 256 *256 + heightMap.g * 256 * 256  + heightMap.b * 256) * 0.1);// * 0.1);// 0.2);
-    pos.y = height * elevationScale *2;// rand(pos.xz) * 10;
+    
+    if(curZoom <= 14 )
+        pos.y = height * elevationScale *2;// rand(pos.xz) * 10;
     
     
     

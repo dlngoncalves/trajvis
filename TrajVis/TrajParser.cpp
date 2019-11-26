@@ -17,6 +17,8 @@
 #include <vector>
 #include <sqlite3.h>
 #include "Map.hpp"
+#include <ctime>
+#include <iomanip>
 
 glm::vec3 TrajParser::basePosition;
 float TrajParser::relativeScale = 1;
@@ -76,9 +78,12 @@ static int trajSegCallback(void *Trajectory, int argc, char **argv, char **azCol
         if(strcmp(azColName[i],"elevation") == 0 ){
             auxSeg.elevation = atof(argv[i]);
         }
-        
+        if(strcmp(azColName[i],"instantspeed") == 0 ){
+            auxSeg.speed = atof(argv[i]);
+        }
+
         columnCount++;
-        if(columnCount == 5){
+        if(columnCount == 7){
             if(TrajParser::basePosition.x == 0 && TrajParser::basePosition.y == 0 && TrajParser::basePosition.z == 0){
                 
                 int x = Map::long2tilex(auxSeg.lon,Map::zoom);
@@ -106,6 +111,7 @@ static int trajSegCallback(void *Trajectory, int argc, char **argv, char **azCol
             columnCount = 0;
         }
     }
+    traj->SetAverageSpeed();
     
     return 0;
 }
@@ -117,13 +123,13 @@ void insertTrajectory(TrajParser &curTraj,std::string trajName, std::string user
     int rc;
     char *zErrMsg = 0;
     
-    query = "INSERT INTO TRAJECTORY (trajectoryname,user) VALUES(" + trajName + "," + user + ");";
+    query = "INSERT INTO TRAJECTORY (trajectoryname,user,averagespeed) VALUES(" + trajName + "," + user + "," + std::to_string(curTraj.averageSpeed) + ");";
     rc = sqlite3_exec(db, query.c_str(),0, 0, &zErrMsg);
     
     for(auto curSeg : curTraj.segList){
-        query = "INSERT INTO TRAJSEG(latitude, longitude, temperature, datetime, elevation, trajectoryname) VALUES (";
+        query = "INSERT INTO TRAJSEG(latitude, longitude, temperature, datetime, elevation, trajectoryname,instantspeed) VALUES (";
         query = query + std::to_string(curSeg.lat) + "," + std::to_string(curSeg.lon) + "," + std::to_string(curSeg.segWeather.temperature);
-        query = query + ", '" + curSeg.timeStamp + "' ," + std::to_string(curSeg.elevation) + " ," + trajName + ");";
+        query = query + ", '" + curSeg.timeStamp + "' ," + std::to_string(curSeg.elevation) + " ," + trajName + " ," + std::to_string(curSeg.speed) + ");";
         rc = sqlite3_exec(db, query.c_str(),0, 0, &zErrMsg);
     }
 }
@@ -255,6 +261,8 @@ void TrajParser::loadTrajectory(std::string file)
             lineCount++;
         }
         
+        SetSpeed();
+        SetAverageSpeed();
         GetTrajWeatherData();
         SetupData();
     }
@@ -439,6 +447,83 @@ void TrajParser::ResetScale(double lat, double lon, std::vector<TrajParser> *tra
     }
 }
 
+float TrajParser::simpleDistance(glm::vec2 pos1, glm::vec2 pos2)
+{
+	//this first calculation is not very precise, so will use the other one
+    //double distlat = 12430 * (abs(pos1.y - pos2.y)/180);
+    //double distlon = 24901 * (abs(pos1.x - pos2.x)/360) * cos((pos1.y+pos2.y)/2 * (M_PI/180));
+    //double distance = sqrt(pow(distlat, 2) + pow(distlon,2));
+	//double distInMeters = firstDistance * 1000;
+
+	//changing distance calculation to something a bit different for a test
+	//basically the same thing as the one from mapbox described on their blog
+
+	double cos1 = cos(pos1.y * M_PI / 180);
+	double cos2 = 2 * cos1 * cos1 - 1;
+	double cos3 = 2 * cos1 * cos2 - cos1;
+	double cos4 = 2 * cos1 * cos3 - cos2;
+	double cos5 = 2 * cos1 * cos4 - cos3;
+
+	//this assumes km but we are returning in meters
+	
+	double K1 = (111.13209 - 0.56605 * cos2 + 0.0012 * cos4);
+	double K2 = (111.41513 * cos1 - 0.09455 * cos3 + 0.00012 * cos5);
+
+	double distance = sqrt( pow(K1*(pos1.y - pos2.y), 2) + pow(K2*(pos1.x - pos2.x), 2) );
+
+	double distInMeters = distance * 1000;
+	
+	return (float)distInMeters;
+	//return (float)distance;
+}
+
+float TrajParser::timeDelta(const TrajSeg &pos1, const TrajSeg &pos2)
+{
+	std::time_t time1;
+	std::time_t time2;
+
+	std::tm date1;
+    std::tm date2;
+    
+	std::istringstream ss1(pos1.timeStamp);
+	//ss1 >> std::get_time(&date1, "%Y-%m-%dT%T%z");
+    ss1 >> std::get_time(&date1, "%Y-%m-%dT%H:%M:%S%z");
+    date1.tm_isdst = 0;
+	time1 = mktime(&date1);
+
+	std::istringstream ss2(pos2.timeStamp);
+	//ss2 >> std::get_time(&date2, "%Y-%m-%dT%T%z");
+    //ss2 >> std::get_time(&date2, "%Y-%m-%dT%T%z");
+    ss2 >> std::get_time(&date2, "%Y-%m-%dT%H:%M:%S%z");
+    date2.tm_isdst = 0;
+	time2 = mktime(&date2);
+
+	double timeSeconds = difftime(time2, time1);// does order matter? 
+	return (float)timeSeconds; 
+}
+
+float TrajParser::getInstantSpeed(const TrajSeg &seg1, const TrajSeg &seg2)
+{
+	//we get the distance in meters from both points AND the time it took for the distance to be covered
+	//should be pretty simple. speed will then be in meters per second. can convert to kmh.
+
+	glm::vec2 pos1 = glm::vec2(seg1.lon, seg1.lat);
+	glm::vec2 pos2 = glm::vec2(seg2.lon, seg2.lat);
+	float distanceInMeters = TrajParser::simpleDistance(pos1, pos2);
+
+	float timeDifference = TrajParser::timeDelta(seg1, seg2);
+    
+    if(fabs(timeDifference-0) <= FLT_EPSILON){//cant have infinity speed
+        return 0.0;
+    }
+    
+	float speedInMetersPerSecond = distanceInMeters / timeDifference;
+
+	float speedInKMH = speedInMetersPerSecond * 3.6;
+
+	return speedInKMH;
+}
+
 //tile bounds starts at tileid * tilesize and goes to tileid+1 * tilesize
 //the part used is the size, which is 
 void TrajParser::SetupData()
@@ -455,6 +540,16 @@ void TrajParser::SetupData()
     glGenBuffers(1, &weatherBufferObject);
     glBindBuffer(GL_ARRAY_BUFFER, weatherBufferObject);
     glBufferData(GL_ARRAY_BUFFER, tempColors.size() * sizeof(glm::vec3), (float *)glm::value_ptr(tempColors.front()), GL_STATIC_DRAW);
+
+    //Cant believe theres no better way to do this in c++
+    std::vector<float> speeds;
+    for(auto &seg : segList){
+        speeds.push_back(seg.speed);
+    }
+    
+    glGenBuffers(1, &speedArrayObject);
+    glBindBuffer(GL_ARRAY_BUFFER, speedArrayObject);
+    glBufferData(GL_ARRAY_BUFFER, speeds.size() * sizeof(float), speeds.data(), GL_STATIC_DRAW);
     
     glGenVertexArrays(1, &vertexArrayObject);
     glBindVertexArray(vertexArrayObject);
@@ -465,8 +560,12 @@ void TrajParser::SetupData()
     glBindBuffer(GL_ARRAY_BUFFER, weatherBufferObject);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
     
+    glBindBuffer(GL_ARRAY_BUFFER, speedArrayObject);
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 0, 0);
+    
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
 }
 
 void TrajParser::GetTrajWeatherData()
@@ -482,6 +581,29 @@ void TrajParser::GetTrajWeatherData()
         segList[i].segWeather = segList[0].segWeather;
     }
     
+}
+
+void TrajParser::SetSpeed()
+{
+    for(int i = 0; i < segList.size(); i++){
+        if(i == segList.size() -1){
+            segList[i].speed = 0.0;
+        }
+        else{
+            segList[i].speed = TrajParser::getInstantSpeed(segList[i], segList[i+1]);
+        }
+    }
+}
+
+//could do this inside the other function
+void TrajParser::SetAverageSpeed()
+{
+    averageSpeed = 0;
+    for(auto &seg : segList){
+        averageSpeed += seg.speed;
+    }
+    
+    averageSpeed /= segList.size();
 }
 
 //in time do a binary search of the trajectory

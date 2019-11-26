@@ -136,7 +136,6 @@ void processs_keyboard(GLFWwindow *window, Camera *cam)
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_J))
         cam->cameraPosition.y -= cam->cameraSpeed;
-    
 }
 
 float cameraDistance(Camera *cam)
@@ -152,7 +151,7 @@ int main () {
 	assert (start_gl ());
 
     
-    camera.cameraPosition = TrajParser::basePosition;
+	camera.cameraPosition = TrajParser::basePosition;
     //camera.cameraPosition.z = 100;
     
     //a couple of things that need to be done regarding the camera
@@ -165,7 +164,7 @@ int main () {
     camera.cameraPosition.y = 1000;
     camera.cameraFront = glm::vec3(0.0, 0.0, -1.0);
     camera.cameraUp = glm::vec3(0.0, 1.0, 0.0);    
-    camera.cameraSpeed = 20;
+    camera.cameraSpeed = 500;
     camera.pitch = 0.0;
     camera.yaw = -90.0;
     
@@ -182,6 +181,8 @@ int main () {
     firstPassShader.AddUniform("view_mat");
     firstPassShader.AddUniform("projection_mat");
     firstPassShader.AddUniform("model_mat");
+    firstPassShader.AddUniform("averageSpeed");
+    firstPassShader.AddUniform("mode");
     firstPassShader.UnUse();
     
     GLSLShader mapShader;
@@ -197,6 +198,7 @@ int main () {
     mapShader.AddUniform("curTexture");
     mapShader.AddUniform("heightMapTex");
     mapShader.AddUniform("elevationScale");
+    mapShader.AddUniform("curZoom");
     mapShader.UnUse();
     
     glfwSetCursorPosCallback(g_window, mouse_callback);
@@ -222,9 +224,10 @@ int main () {
 //    TrajParser trajetory2("trajectories/walk_16.csv",firstPassShader);
 //    TrajParser trajetory3("trajectories/walk_17.csv",firstPassShader);
 //    TrajParser trajetory4("trajectories/walk_20.csv",firstPassShader);
-    Map::zoom = 15;
-    std::vector<TrajParser> TrajList = TrajParser::LoadTrajDescription("trajectories/trajectories.txt",firstPassShader);
+    Map::zoom = 9;
+    std::vector<TrajParser> TrajList = TrajParser::LoadTrajDescription("trajectories/trajectories3.txt",firstPassShader);
     
+    int mode = 1;
     
 //    TrajList.push_back(trajetory);
 //    TrajList.push_back(trajetory2);
@@ -247,8 +250,8 @@ int main () {
 	/* some rendering defaults */
 	glEnable(GL_DEPTH_TEST); // enable depth-testing
 	glDepthFunc(GL_LESS); // depth-testing interprets a smaller value as "closer"
-	glEnable (GL_CULL_FACE); // cull face
-	glCullFace(GL_BACK); // cull back face
+//    glEnable (GL_CULL_FACE); // cull face
+//    glCullFace(GL_BACK); // cull back face
 	glFrontFace (GL_CCW); // GL_CCW for counter clock-wise
 	
     glViewport(0, 0, g_gl_width,  g_gl_height);
@@ -258,6 +261,8 @@ int main () {
 
     firstPassShader.Use();
     glUniformMatrix4fv(firstPassShader("projection_mat"), 1, GL_FALSE, glm::value_ptr(perspectiveMatrix));
+    glUniform1i(firstPassShader("mode"), mode);
+    
     mapShader.Use();
     glUniformMatrix4fv(mapShader("projection_mat"), 1, GL_FALSE, glm::value_ptr(perspectiveMatrix));
     //-30.057637, -51.171501
@@ -276,6 +281,8 @@ int main () {
     int zoom = (10*ratio) + 9;
     
     Map::zoom = zoom; //wont use both for long
+    
+    glUniform1f(mapShader("curZoom"), Map::zoom);
     
     //this is still static
     //will need to use the calculation from lat/lon to our coordinate system and then update map when camera moves
@@ -326,12 +333,17 @@ int main () {
 //    int B = myMap.tileMap[TILEMAP_SIZE/2][TILEMAP_SIZE/2].height_data[3];
 //    float height = (-1000 + (R * 256 * 256 + G * 256 + B) * 0.1);
     
-    trajMatrix = glm::translate(trajMatrix, glm::vec3(translatedX,1.0,translatedY));
+    
+    //dont think this is needed anymore
+    float xtrans = 0.0;
+    float ytrans = 5.0;
+    
+    
+    trajMatrix = glm::translate(trajMatrix, glm::vec3(translatedX,ytrans,translatedY));
     trajMatrix = glm::rotate<float>(trajMatrix, -M_PI, glm::vec3(1.0,0.0,0.0));
     
     
     //
-    
     
     
     
@@ -341,10 +353,6 @@ int main () {
     //myMap.GetLocation();
     
     //if 1000 is default distance
-    
-    //dont think this is needed anymore
-    float xtrans = 0.0;
-    float ytrans = 0.0;
     
     float rotation = 0.0;
     
@@ -364,16 +372,17 @@ int main () {
         
 		_update_fps_counter (g_window);
 		
-		glFinish();
-
-		GLuint query;
-		GLuint64 elapsed_time;
-
-		glGenQueries(1, &query);
-		glBeginQuery(GL_TIME_ELAPSED, query);
+//        glFinish();
+//
+//        GLuint query;
+//        GLuint64 elapsed_time;
+//
+//        glGenQueries(1, &query);
+//        glBeginQuery(GL_TIME_ELAPSED, query);
 
         mapShader.Use();
         glUniformMatrix4fv(mapShader("view_mat"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
+        
         //glUniformMatrix4fv(mapShader("model_mat"), 1, GL_FALSE, glm::value_ptr(model_mat));
         
             //myMap.tileMap[0][0].modelMatrix = glm::rotate(myMap.tileMap[0][0].modelMatrix, rotation, glm::vec3(0.0,1.0,0.0));
@@ -431,13 +440,13 @@ int main () {
         //trajMatrix = glm::translate(trajMatrix, glm::vec3(xtrans,0.0,ytrans));
         //trajMatrix = glm::rotate(trajMatrix, rotation, glm::vec3(0.0,1.0,0.0));
         glUniformMatrix4fv(firstPassShader("model_mat"), 1, GL_FALSE, glm::value_ptr(trajMatrix));
-        
+        glUniform1i(firstPassShader("mode"), mode);
         //shouldn this be an auto &?
         for(auto curTraj : TrajList){
+            glUniform1f(firstPassShader("averageSpeed"), curTraj.averageSpeed);
             glBindVertexArray (curTraj.vertexArrayObject);
-            glDrawArrays (GL_LINE_STRIP, 0, (int)curTraj.positions.size());
-            //glDrawArrays (GL_LINE_STRIP, 0, 1000);
-            //glDrawArrays (GL_POINTS, 0, 1);
+            glDrawArrays (GL_LINE_STRIP_ADJACENCY, 0,(int)curTraj.positions.size());
+            //glDrawArrays (GL_POINTS, 0, (int)curTraj.positions.size());
         }
         
 
@@ -457,7 +466,7 @@ int main () {
             ratio = 1-(round(curDistance)/1000);
             //int newZoom = (int)floor(5000 * ratio);
             int newZoom = int(floor((10*ratio) + 9));
-            newZoom > 15 ? newZoom = 15 : newZoom = newZoom; //changing here for a max of 15 until we deal with the height issue
+            newZoom > 19 ? newZoom = 19 : newZoom = newZoom; //changing here for a max of 15 until we deal with the height issue
             newZoom < 0 ? newZoom = 0 : newZoom = newZoom;
 
             //zoom = (int)floor(5000 * ratio);
@@ -467,6 +476,9 @@ int main () {
                 myMap.curZoom = zoom;
                 Map::zoom = zoom;
                 myMap.FillMapTiles();
+                mapShader.Use();
+                glUniform1f(mapShader("curZoom"), Map::zoom);
+                mapShader.UnUse();
                 TrajParser::ResetScale(startPos.z, startPos.x, &TrajList);
 
                 //really need to put this in a function
@@ -477,7 +489,7 @@ int main () {
                 float translatedY = (posY *200) -100;
 
                 trajMatrix = glm::mat4(1.0);
-                trajMatrix = glm::translate(trajMatrix, glm::vec3(translatedX,1.0,translatedY));
+                trajMatrix = glm::translate(trajMatrix, glm::vec3(translatedX,ytrans,translatedY));
                 trajMatrix = glm::rotate<float>(trajMatrix, -M_PI, glm::vec3(1.0,0.0,0.0));
                 Tile::tileScale = Tile::recalculateScale(startPos.z, Map::zoom);
             }
@@ -485,21 +497,39 @@ int main () {
         }
         
         if(GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_T)){
-            xtrans += 0.001;
+            //xtrans += 0.001;
             //rotation += 0.001;
+
         }
         if(GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_Y)){
-            xtrans -= 0.001;
+            //xtrans -= 0.001;
             //rotation -= 0.001;
         }
         
-        if(GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_G)){
-            ytrans += 0.001;
+        if(GLFW_PRESS == glfwGetKey(g_window,GLFW_KEY_1))
+        {
+            mode = 1;
         }
-        if(GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_H)){
-            ytrans -= 0.001;
+
+        if(GLFW_PRESS == glfwGetKey(g_window,GLFW_KEY_2))
+        {
+            mode = 2;
         }
         
+        if(GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_G)){
+            ytrans += 10.0;
+            //trajMatrix = glm::mat4(1.0);
+            trajMatrix = glm::translate(trajMatrix, glm::vec3(0.0,ytrans,0.0));
+            trajMatrix = glm::rotate<float>(trajMatrix, -M_PI, glm::vec3(1.0,0.0,0.0));
+        }
+        if(GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_H)){
+            ytrans -= 10.0;
+            //trajMatrix = glm::mat4(1.0);
+            trajMatrix = glm::translate(trajMatrix, glm::vec3(0.0,ytrans,0.0));
+            trajMatrix = glm::rotate<float>(trajMatrix, -M_PI, glm::vec3(1.0,0.0,0.0));
+        }
+
+
         //for testing the position
         //std::cout << to_string(cameramatrix[3][0]) << " " << to_string(cameramatrix[3][1])<< " " << to_string(cameramatrix[3][2]) << "\n";
         
@@ -531,11 +561,11 @@ int main () {
 
 		//in this case we are measuring the total rendering time- should separate by map and trajectories, 
 		//especially to measure things like tesselation, geometry generation and number of trajectories.
-		glFinish();
-
-		glEndQuery(GL_TIME_ELAPSED);
-		glGetQueryObjectui64v(query, GL_QUERY_RESULT, &elapsed_time);
-		printf("%f ms\n", (elapsed_time) / 1000000.0);
+//        glFinish();
+//
+//        glEndQuery(GL_TIME_ELAPSED);
+//        glGetQueryObjectui64v(query, GL_QUERY_RESULT, &elapsed_time);
+//        printf("%f ms\n", (elapsed_time) / 1000000.0);
 	}
 	
 	// close GL context and any other GLFW resources

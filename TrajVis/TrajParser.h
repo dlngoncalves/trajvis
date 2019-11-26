@@ -28,6 +28,7 @@ struct TrajSeg
     std::string timeStamp;
     float lat;
     float lon;
+    float speed;
     //wonder if I should add a xyz position here?
     //float temp;//temperature in celcius
     WeatherData segWeather;
@@ -56,6 +57,9 @@ protected:
     
 public:
     //TrajParser();
+    //we still dont have many properties concerning the whole trajectory --adding average speed here, could add temperature
+    float averageSpeed;
+    
     static glm::vec3 convertLatLon(TrajSeg &segment,glm::vec3 refPoint);
     
     glm::vec3 latLonToMeters(float lat, float lon, int zoom);
@@ -69,6 +73,19 @@ public:
     static void SetScale(int x, int y, int z);//center mercator and zoom
     
     static void ResetScale(double lat, double lon, std::vector<TrajParser> *trajectories);// not really reset in the sense of restarting, but of setting again
+    
+	//probably wont be static
+    static float simpleDistance(glm::vec2 pos1, glm::vec2 pos2);
+    
+	//probably wont be static
+    static float timeDelta(const TrajSeg &pos1, const TrajSeg &pos2);
+    
+	//probably wont be static
+	static float getInstantSpeed(const TrajSeg &seg1, const TrajSeg &seg2);
+
+    void SetSpeed();
+    
+    void SetAverageSpeed();
     
     TrajParser(std::string file,GLSLShader &shader) : myShader(shader)
     {
@@ -110,7 +127,7 @@ public:
     GLuint vertexBufferObject;
     GLuint weatherBufferObject;
     GLuint vertexArrayObject;
-    
+    GLuint speedArrayObject;
     void SetupData();
 };
 
