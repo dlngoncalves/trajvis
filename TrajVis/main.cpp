@@ -34,13 +34,14 @@
 #include <sqlite3.h>
 //#include <Map.hpp>
 #include "Map.hpp"
+#include "Framebuffer.h"
 
 #define GL_LOG_FILE "gl.log"
 #define NUM_WAVES 5
 
 // keep track of window size for things like the viewport and the mouse cursor
-int g_gl_width = 1400;
-int g_gl_height = 1050;
+int g_gl_width = 1366;
+int g_gl_height = 768;
 GLFWwindow* g_window = NULL;
 
 Camera camera;
@@ -172,6 +173,11 @@ int main () {
     
     //GL_TESS_CONTROL_SHADER, GL_TESS_EVALUATION_SHADER
     
+    //for this deferred rendering test we will render the map to texture and then access the texture data on the trajectory shader
+    //but only use it as a background for rendering
+    //actually just remembered that this doesnt even make 
+    //one thing I think could be interesting is adding to the shader class some form of reference to the textures used by that shader?
+    
     GLSLShader trajectoryShader;
     trajectoryShader.LoadFromFile(GL_VERTEX_SHADER, "vert.glsl");
     trajectoryShader.LoadFromFile(GL_FRAGMENT_SHADER, "frag.glsl");
@@ -183,6 +189,7 @@ int main () {
     trajectoryShader.AddUniform("model_mat");
     trajectoryShader.AddUniform("averageSpeed");
     trajectoryShader.AddUniform("mode");
+    trajectoryShader.AddUniform("mapTexture");
     trajectoryShader.UnUse();
     
     GLSLShader mapShader;
@@ -200,7 +207,16 @@ int main () {
     mapShader.AddUniform("elevationScale");
     mapShader.AddUniform("curZoom");
     mapShader.UnUse();
+
+    GLSLShader fullScreenShader;
+    fullScreenShader.LoadFromFile(GL_VERTEX_SHADER, "full_screen_vs.glsl");
+    fullScreenShader.LoadFromFile(GL_FRAGMENT_SHADER, "full_screen_fs.glsl");
+    fullScreenShader.CreateAndLinkProgram();
+    fullScreenShader.Use();
+    fullScreenShader.AddUniform("mapTexture");
     
+    Framebuffer mapBuffer = Framebuffer(mapShader, fullScreenShader,g_gl_width,g_gl_height);
+
     glfwSetCursorPosCallback(g_window, mouse_callback);
     glfwSetInputMode(g_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -248,7 +264,15 @@ int main () {
     
 /*------------------------------rendering loop--------------------------------*/
 	/* some rendering defaults */
-	glEnable(GL_DEPTH_TEST); // enable depth-testing
+    
+    //IMPORTANT - I disabled depth testing here to render both the fullscreen texture and the trajectory after it,
+    //but not sure if there could be consequences.
+    //at least when doing things in screen space, I think the usual thing to do is disable it
+    //this still doesnt solve blending, which I should look into doing
+    //but in a way this is good I guess? just realized that lowering the alpha on the map would make the whole thing transparent maybe?
+    //also could just render the trajectory to another full screen texture and blend the two in a final pass
+    //this is not very relevant because rendering the trajectories in screen space would solve these issues
+	//glEnable(GL_DEPTH_TEST); // enable depth-testing
 	glDepthFunc(GL_LESS); // depth-testing interprets a smaller value as "closer"
 //    glEnable (GL_CULL_FACE); // cull face
 //    glCullFace(GL_BACK); // cull back face
@@ -358,15 +382,18 @@ int main () {
     
 	while (!glfwWindowShouldClose (g_window)) {
 		
+        //should see how messing around with the framebuffers (cleaning, writing etc) affects performance)
+        glViewport(0, 0, g_gl_width, g_gl_height); //also calling this every frame? thats how it was in the ray tracer but seems weird
+        //but the call seems necessary to properly align the framebuffer texture with the viewport
+        mapBuffer.Use();
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClearColor(0.0, 0.0, 0.0, 1.0);
         
-		
         GLfloat currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
         camera.cameraSpeed = 500.0f * deltaTime;
-        
         
         glm::mat4 viewMatrix = glm::lookAt(camera.cameraPosition, camera.cameraPosition + camera.cameraFront, camera.cameraUp);
         
@@ -403,6 +430,8 @@ int main () {
 //
 //            //glBindVertexArray()
 //        }
+        
+        
         glPatchParameteri (GL_PATCH_VERTICES, 3);
         glUniform1f(mapShader("elevationScale"), Tile::tileScale);
         //this one vao and rebinding everything and one draw call per tile is not very efficient but will stay for now
@@ -424,6 +453,15 @@ int main () {
                 //tileMap[i][j].modelMatrix = glm::translate(glm::mat4(1.0), glm::vec3(i*100,0,j*100));
             }
         }
+        
+        //the way I named this makes it a bit confusing, but unuse means we are no longer drawing to a texture
+        mapBuffer.UnUse();
+        fullScreenShader.Use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, mapBuffer.frameBufferTexture);
+        glBindVertexArray(mapBuffer.vertexArrayObject);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        fullScreenShader.UnUse();
         //glBindVertexArray(myMap.vertexArrayObject);
         //glDrawArrays(GL_TRIANGLES, 0, 6);
         
@@ -559,6 +597,7 @@ int main () {
 		// put the stuff we've been drawing onto the display
 		glfwSwapBuffers (g_window);
 
+        glFinish();
 		//in this case we are measuring the total rendering time- should separate by map and trajectories, 
 		//especially to measure things like tesselation, geometry generation and number of trajectories.
 //        glFinish();

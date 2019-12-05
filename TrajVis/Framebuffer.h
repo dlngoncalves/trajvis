@@ -9,65 +9,59 @@
 #ifndef Framebuffer_h
 #define Framebuffer_h
 
-#include <stdio.h>
 #define GL_SILENCE_DEPRECATION
 #ifdef __APPLE__
-	#include <OpenGL/gl3.h>
-	#include <OpenGL/gl3ext.h>
+#include <OpenGL/gl3.h>
+#include <OpenGL/gl3ext.h>
 #else
-	#include <GL/glew.h> // include GLEW and new version of GL on Windows
+#include <GL/glew.h> // include GLEW and new version of GL on Windows
 #endif
+
+#include "GLSLShader.h"
 
 class Framebuffer {
 
-    GLuint framebuffer;
-    GLuint framebufferTexture;
-    
+    //need to make things not public again I guess
+    //this should go into the code_cleanup feature later
+public:
+
     GLuint frameBuffer;
     GLuint frameBufferTexture;
-    GLuint framBufferNormalTexture;
-    GLuint frameBufferPositionTexture;
     
+    //I dont remember if in the ray tracer we actually had
+    //these because we needed them or something didnt work
+    //I think they are needed for depth sorting?
     GLuint depthTexture;
     GLuint depthrenderbuffer;
-    
-    GLuint cube_vbo;
-    GLuint cube_vao;
+
+    //full screen quad(and its buffers) are members of the framebuffer class
+    GLuint vertexBufferObject;
+    GLuint vertexArrayObject;
     GLuint cube_texture;
     GLuint tex_cube;
 
+    GLfloat points[12] = {
+        -1.0, -1.0,
+        1.0, -1.0,
+        1.0, 1.0,
+        1.0, 1.0,
+        -1.0, 1.0,
+        -1.0, -1.0
+    };
+    
     //just redeclaring this here to shut up the compiler but if using need to pass real ones
-    int g_gl_width = 1400;
-    int g_gl_height = 1050;
+    int width;
+    int height;
 
-public:
+    GLSLShader &inShader;
+    GLSLShader &outShader;
     
-    void CreateFrameBuffer();
-    Framebuffer();
-    ~Framebuffer();
+    void Use();
+    void UnUse();
+    void SetupData(); //OpenGL data
+    
+    void CreateFrameBuffer(int width, int height);
+    Framebuffer(GLSLShader &inShader, GLSLShader &outShader, int width=1366, int height=768);
+    ~Framebuffer(){};
 };
-
-void Framebuffer::CreateFrameBuffer()
-{
-    glGenFramebuffers(1, &frameBuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
-    
-    glGenTextures(1, &frameBufferTexture);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, frameBufferTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_gl_width, g_gl_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-    
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, frameBufferTexture, 0);
-    
-    //with this we are generating one texture from the framebuffer data - add more textures as needed, as seen in the defered shading stuff
-    
-    //is this part needed ? the renderbuffer - from what I can recall - is needed for depth operations - might be needed
-    //glGenRenderbuffers(...)
-}
-
 #endif /* Framebuffer_h */
