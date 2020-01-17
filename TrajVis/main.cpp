@@ -206,6 +206,7 @@ int main () {
     mapShader.AddUniform("heightMapTex");
     mapShader.AddUniform("elevationScale");
     mapShader.AddUniform("curZoom");
+    mapShader.AddUniform("tileID");//by ID I mean the same style we are using for the files : x-y-zoom, but no
     mapShader.UnUse();
 
     GLSLShader fullScreenShader;
@@ -434,11 +435,12 @@ int main () {
         
         glPatchParameteri (GL_PATCH_VERTICES, 3);
         glUniform1f(mapShader("elevationScale"), Tile::tileScale);
+        glUniform1f(mapShader("scale"),TrajParser::relativeScale);
         //this one vao and rebinding everything and one draw call per tile is not very efficient but will stay for now
         for(int i = 0; i < TILEMAP_SIZE; i++){
             for(int j = 0; j < TILEMAP_SIZE; j++){
                 glUniformMatrix4fv(mapShader("model_mat"), 1, GL_FALSE, glm::value_ptr(myMap.tileMap[i][j].modelMatrix));
-                
+                glUniform1i(mapShader("tileID"), myMap.tileMap[i][j].tileID);
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, myMap.tileMap[i][j].textureID);
                 

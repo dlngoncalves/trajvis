@@ -230,6 +230,9 @@ void Map::FillMapTiles()
     }
 }
 
+//have to look into the scales - tile and traj are close but not equal, but being used for distinct things, so probably different meaning
+//this seems to be how much one pixel in world units is in meters
+//
 float Tile::recalculateScale(float lat,int newZoom)
 {
     int earthRadius = 6378137;
@@ -254,7 +257,10 @@ void Tile::GetMapData(int x, int y, int curX, int curY, int zoom)
     int xOffset = curX - tileCenter;
     int yOffset = curY - tileCenter;
     
-    
+    //tileID = x+xOffset;//for now, just for testing stuff;
+    //need to figure out how to store larger - use long?
+    tileID = (x+xOffset) << 20 ^ (y+yOffset) << 4 ^ zoom;
+        
     std::string newUrl = url + to_string(zoom) + "/";
     std::string tile = to_string(x+xOffset) + "/" + to_string(y+yOffset) + "@2x.jpg90";
     newUrl = newUrl + tile + apikey;

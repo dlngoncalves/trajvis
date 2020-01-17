@@ -414,6 +414,7 @@ glm::vec2 TrajParser::pixelsToMeters(glm::vec2 p, int zoom)
     return met;
 }
 
+//this sets how many meters does one world unit currently represents
 void TrajParser::SetScale(int x, int y, int z)
 {
     //reference tile size
@@ -458,6 +459,7 @@ float TrajParser::simpleDistance(glm::vec2 pos1, glm::vec2 pos2)
 	//changing distance calculation to something a bit different for a test
 	//basically the same thing as the one from mapbox described on their blog
 
+    //need to document better this sort of thing
 	double cos1 = cos(pos1.y * M_PI / 180);
 	double cos2 = 2 * cos1 * cos1 - 1;
 	double cos3 = 2 * cos1 * cos2 - cos1;

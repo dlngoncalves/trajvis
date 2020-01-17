@@ -16,7 +16,7 @@ uniform float elevationScale;
 uniform float curZoom;
 
 out vec3 colour;
-
+out vec2 outPos; //world position, but ignore elevation
 out vec2 texcoords;
 // gl_TessCoord is location within the patch
 // (barycentric for triangles, UV for quads)
@@ -54,6 +54,12 @@ void main () {
         pos.y = height * elevationScale *2;// rand(pos.xz) * 10;
     
     
+    outPos = (model_mat * vec4(pos,1.0)).xz;
+//    outPos = pos.xz;
+    
+    //this one is dumb - tesscoords are the baricentric coords, so nothing relating to the world
+    //outPos = vec2(gl_TessCoord.y,gl_TessCoord.y);
+    //outPos = (model_mat * vec4(gl_TessCoord,1.0)).xz;
     
     gl_Position = projection_mat * view_mat * model_mat * vec4(pos,1.0);
     //gl_Position = vec4 (pos, 1.0); // use view and projection matrices here

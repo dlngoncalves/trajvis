@@ -74,6 +74,8 @@ struct Tile
     GLuint height_texID;
     unsigned char* height_data;
     
+    GLuint tileID;
+    
     //what are those coordinates? doesnt make sense to be the slippy name because that is always changing based on zoom level
     int x;
     int y;
