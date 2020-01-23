@@ -18,7 +18,7 @@
 #include "Trajectory.h"
 #include "Weather.h"
 #include "GLSLShader.h"
-
+#include "Map.hpp"
 //moved weather stuff out of here and into its own class
 
 
@@ -100,7 +100,12 @@ public:
     
     static glm::vec3 basePosition;
     
+    //gonna keep this one but stop using it, so dont have to mess around.
     static std::vector<TrajParser> LoadTrajDescription(std::string file,GLSLShader &shader);
+    
+    //should it be a location string or a location structure?
+    static std::vector<TrajParser> LoadLocalTrajectories(std::string location, GLSLShader &shader);
+    static std::vector<TrajParser> LoadLocalTrajectories(GeoPosition location, GLSLShader &shader);
     
     //regarding those two vectors - first stores positions already converted to xyz and second stores lat-lon info
     std::vector<glm::vec3> positions; //moving this here for easier access

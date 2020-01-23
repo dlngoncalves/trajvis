@@ -80,6 +80,21 @@ struct Tile
     glm::mat4 modelMatrix;//this will be used when we are loading multiple tiles -- would probably be enough to have one for the whole map
 };
 
+struct GeoPosition
+{
+//doing things this way so aggregate initialization is possible (with the constructor it is not)
+//think it might make more sense to use a vec2 for lat lon?
+    std::string latlonString = "0,0";
+    float lat = 0.0;
+    float lon = 0.0;
+    glm::vec2 latlonVec = glm::vec2(0.0,0.0); //might be too much memory use for this
+    
+//    std::string latlon;
+//    float lat;
+//    float lon;
+//    GeoPosition() : latlon("0,0"), lat(0.0), lon(0.0) {}
+};
+
 class Map {
     //
 
@@ -164,7 +179,7 @@ public:
     
     void GetTile(int x, int y, int zoom);
     
-    void GetLocation();
+    static std::string GetLocation();
     
     //will use one of these to redraw the entire tilemap
     void FillMapTiles();

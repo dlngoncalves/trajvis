@@ -116,6 +116,18 @@ static int trajSegCallback(void *Trajectory, int argc, char **argv, char **azCol
     return 0;
 }
 
+//creating a new callback because we need to receive an array of trajectory names;
+static int trajListCallback(void *Trajectories, int argc, char **argv, char **azColName)
+{
+    //the callback is called for each row, so no need to iterate
+    std::vector<std::string> *trajList = (std::vector<std::string> *)Trajectories;
+    
+    //no need to check the column because we are only retrieving the trajectory name
+    trajList->push_back(argv[0]);
+    
+    return 0;
+}
+
 //should abstract away sql stuff
 void insertTrajectory(TrajParser &curTraj,std::string trajName, std::string user,sqlite3 *db)
 {
@@ -182,6 +194,42 @@ std::vector<TrajParser> TrajParser::LoadTrajDescription(std::string file, GLSLSh
     return trajectories;
 }
 
+std::vector<TrajParser> TrajParser::LoadLocalTrajectories(GeoPosition location, GLSLShader &shader)
+{
+    std::vector<TrajParser> trajectories;
+    
+    sqlite3 *db;
+    std::string query;
+    char *zErrMsg = 0;
+    
+    float latDelta = 1.0;//this will be more complex later
+    float lonDelta = 1.0;
+    
+    int rc = sqlite3_open("trajectories.db", &db);
+
+    std::string minLat = std::to_string(location.lat-latDelta);
+    std::string maxLat = std::to_string(location.lat+latDelta);
+    std::string minLon = std::to_string(location.lon-lonDelta);
+    std::string maxLon = std::to_string(location.lon+lonDelta);
+    
+    query = "SELECT DISTINCT TRAJECTORYNAME FROM TRAJSEG WHERE LATITUDE BETWEEN " + minLat + " AND " + maxLat + " AND LONGITUDE BETWEEN "
+    + minLon + " AND " + maxLon + ";";
+    
+    std::vector<std::string> trajNames;
+    //have to remember that sqlite exec will step over all the rows
+    rc = sqlite3_exec(db, query.c_str(),trajListCallback, &trajNames, &zErrMsg);
+    
+    for(int i = 0; i < trajNames.size(); i++){
+        //iterate over the trajectory names and get their segments
+        query = "SELECT * FROM TRAJSEG WHERE TRAJECTORYNAME IS " + trajNames[i] + ";";// ORDER BY DATETIME ASC;";
+        TrajParser curTrajDB(shader);
+        rc = sqlite3_exec(db, query.c_str(),trajSegCallback, &curTrajDB, &zErrMsg);
+        curTrajDB.SetupData();
+        trajectories.push_back(curTrajDB);
+    }
+    
+    return trajectories;
+}
 
 //this should probably be refactored into a loadTrajectory function
 //should I derive this class for the geolife stuff?

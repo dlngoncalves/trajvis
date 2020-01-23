@@ -400,7 +400,11 @@ void Map::GetMapData(float lat, float lon, int zoomLevel)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 }
 
-void Map::GetLocation()
+//having internal lat/lon variables per trajectory is fine, but should avoid functions like this t
+//that change state and return nothing
+//maybe should add a lat/lon struct
+//making this static for now to call before trajectories are loaded
+std::string Map::GetLocation()
 {
     //at this point should probably have a wrapper for curl stuff
     std::string url =  "https://freegeoip.app/json/";
@@ -418,8 +422,10 @@ void Map::GetLocation()
     float latitude =  locationObj["latitude"].get<float>();
     float longitude = locationObj["longitude"].get<float>();
     
-    lat = latitude;
-    lon = longitude;
+    //lat = latitude;
+    //lon = longitude;
+    
+    return std::to_string(latitude) + "," + std::to_string(longitude);
 }
 
 void Map::LoadMap(float lat, float lon, int zoomLevel)
