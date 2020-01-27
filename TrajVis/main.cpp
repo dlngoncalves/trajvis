@@ -234,10 +234,10 @@ int main () {
     //GeoPosition start {"40,116",40,116,glm::vec2(40,116)};//around Beijing
     GeoPosition start;
     start = Map::GetLocation();
-    std::vector<TrajParser> TrajList = TrajParser::LoadLocalTrajectories(start, firstPassShader);
+    std::vector<TrajParser> TrajList = TrajParser::LoadLocalTrajectories(start, trajectoryShader);
     
     //old way still availiable
-    //std::vector<TrajParser> TrajList = TrajParser::LoadTrajDescription("trajectories/trajectories3.txt",firstPassShader);
+    //std::vector<TrajParser> TrajList = TrajParser::LoadTrajDescription("trajectories/trajectories3.txt",trajectoryShader);
     
     int mode = 1;
     
