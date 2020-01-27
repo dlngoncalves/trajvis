@@ -232,8 +232,9 @@ int main () {
     //std::string location = "-30.057637,-51.171501"; //mocking location
     //std::vector<TrajParser> TrajList = TrajParser::LoadTrajDescription(location,firstPassShader);
     //mocking position, also can I only implemented the version of the method using the GeoPosition struct, not strings
-    GeoPosition start {"40,116",40,116,glm::vec2(40,116)};//around Beijing
-
+    //GeoPosition start {"40,116",40,116,glm::vec2(40,116)};//around Beijing
+    GeoPosition start;
+    start = Map::GetLocation();
     std::vector<TrajParser> TrajList = TrajParser::LoadLocalTrajectories(start, firstPassShader);
     
     //old way still availiable
@@ -302,7 +303,13 @@ int main () {
     //but the textures change based on position/distance - it just stays static with relation to the camera
     
     //should move this stuff to a init function
-    glm::vec3 startPos = glm::vec3(TrajList[0].segList[0].lon,0.0,TrajList[0].segList[0].lat);
+    glm::vec3 startPos;
+    if(TrajList.size() >0){
+        startPos = glm::vec3(TrajList[0].segList[0].lon,0.0,TrajList[0].segList[0].lat);
+    }
+    else{//would make sense to always use this I guess
+        startPos = glm::vec3(start.lon,0.0,start.lat);
+    }
     
     float posX = Map::long2tilexpx(startPos.x, Map::zoom);
     float posY = Map::lat2tileypx(startPos.z, Map::zoom);

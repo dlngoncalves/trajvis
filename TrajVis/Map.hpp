@@ -15,7 +15,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 
-#define TILEMAP_SIZE 9
+#define TILEMAP_SIZE 5
 //class or struct?
 struct Tile
 {
@@ -93,7 +93,18 @@ struct GeoPosition
 //    float lat;
 //    float lon;
 //    GeoPosition() : latlon("0,0"), lat(0.0), lon(0.0) {}
+    //GeoPosition& operator = (const std::string& location); just say no
 };
+
+//tring to override equal sign so we dont have to change the getlocation function to return something other than a string
+//in a way this is a really over engineered way of doing this
+//and it didnt work, for some weird linker reasons, but I will leave this here as a testament to my idiocy
+//GeoPosition& GeoPosition::operator = (const std::string& location)
+//{
+//    this->latlonString = location;
+//
+//    return *this;
+//}
 
 class Map {
     //
@@ -179,7 +190,7 @@ public:
     
     void GetTile(int x, int y, int zoom);
     
-    static std::string GetLocation();
+    static GeoPosition GetLocation();
     
     //will use one of these to redraw the entire tilemap
     void FillMapTiles();

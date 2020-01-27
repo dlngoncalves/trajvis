@@ -404,7 +404,7 @@ void Map::GetMapData(float lat, float lon, int zoomLevel)
 //that change state and return nothing
 //maybe should add a lat/lon struct
 //making this static for now to call before trajectories are loaded
-std::string Map::GetLocation()
+GeoPosition Map::GetLocation()
 {
     //at this point should probably have a wrapper for curl stuff
     std::string url =  "https://freegeoip.app/json/";
@@ -425,7 +425,12 @@ std::string Map::GetLocation()
     //lat = latitude;
     //lon = longitude;
     
-    return std::to_string(latitude) + "," + std::to_string(longitude);
+    GeoPosition pos;
+    pos.lat = latitude;
+    pos.lon = longitude;
+    pos.latlonVec = glm::vec2(latitude,longitude);
+    pos.latlonString = std::to_string(latitude) + "," + std::to_string(longitude);
+    return pos;
 }
 
 void Map::LoadMap(float lat, float lon, int zoomLevel)
