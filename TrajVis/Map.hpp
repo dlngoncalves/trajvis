@@ -190,7 +190,7 @@ public:
     
     void GetTile(int x, int y, int zoom);
     
-    static GeoPosition GetLocation();
+    static GeoPosition GetLocation(bool mockData = false);
     
     //will use one of these to redraw the entire tilemap
     void FillMapTiles();

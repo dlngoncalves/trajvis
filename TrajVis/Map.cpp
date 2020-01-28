@@ -404,24 +404,32 @@ void Map::GetMapData(float lat, float lon, int zoomLevel)
 //that change state and return nothing
 //maybe should add a lat/lon struct
 //making this static for now to call before trajectories are loaded
-GeoPosition Map::GetLocation()
+GeoPosition Map::GetLocation(bool mockData)
 {
-    //at this point should probably have a wrapper for curl stuff
-    std::string url =  "https://freegeoip.app/json/";
-    std::string responseBuffer;
-    CURL *handle = curl_easy_init();
-    if(handle){
-        CURLcode res;
-        curl_easy_setopt(handle, CURLOPT_URL,url.c_str());
-        curl_easy_setopt(handle,CURLOPT_WRITEFUNCTION,WriteCallBackLocation);
-        curl_easy_setopt(handle,CURLOPT_WRITEDATA,&responseBuffer);
-        res = curl_easy_perform(handle);
-    }
-    //wonder what happens when we dont receive the location
-    json locationObj = json::parse(responseBuffer);
-    float latitude =  locationObj["latitude"].get<float>();
-    float longitude = locationObj["longitude"].get<float>();
+    float latitude;
+    float longitude;
     
+    if(!mockData){
+        //at this point should probably have a wrapper for curl stuff
+        std::string url =  "https://freegeoip.app/json/";
+        std::string responseBuffer;
+        CURL *handle = curl_easy_init();
+        if(handle){
+            CURLcode res;
+            curl_easy_setopt(handle, CURLOPT_URL,url.c_str());
+            curl_easy_setopt(handle,CURLOPT_WRITEFUNCTION,WriteCallBackLocation);
+            curl_easy_setopt(handle,CURLOPT_WRITEDATA,&responseBuffer);
+            res = curl_easy_perform(handle);
+        }
+        //wonder what happens when we dont receive the location
+        json locationObj = json::parse(responseBuffer);
+        latitude =  locationObj["latitude"].get<float>();
+        longitude = locationObj["longitude"].get<float>();
+    }
+    else{
+        latitude = 40.0f;
+        longitude = 116.0f;
+    }
     //lat = latitude;
     //lon = longitude;
     

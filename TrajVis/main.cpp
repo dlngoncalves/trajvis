@@ -94,7 +94,10 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     yoffset *= sensitivity;
     
     camera.pitch += yoffset;
-    camera.yaw += xoffset;
+    camera.yaw += xoffset; //trying to change the way the camera works without a lot of changes - might not be good
+    //forcing the yaw stops rotating, for now thats what we want -
+    //but dont know if something weird might happen when we have trajectories being multiplied by the view matrix
+    //so keeping this for now, so we can rotate in weird ways
     
     if (camera.pitch > 89.0f)
         camera.pitch = 89.0f;
@@ -119,23 +122,32 @@ void processs_keyboard(GLFWwindow *window, Camera *cam)
     }
     //multiplying by the front vector changes the position in weird ways
     //this is a perfectly fine camera movement system but I think for sliding along the map I might need something else
+    
+    glm::vec3 directionLateral = glm::normalize(glm::cross(glm::vec3(0.0,-1.0,0.0), glm::vec3(0.0,0.0,-1.0)));
+    glm::vec3 directionVertical = glm::normalize(glm::cross(glm::vec3(0.0,-1.0,0.0), glm::vec3(-1.0,0.0,0.0)));
+    
+    //glm::vec3 right = glm::normalize(glm::cross(cam->cameraFront, cam->cameraUp));
+    //keeping old camera movement commented out - also added the direction vectors, so that should be a bit faster
+    
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_W))
-        cam->cameraPosition += cam->cameraSpeed * cam->cameraFront;
+        //cam->cameraPosition += cam->cameraSpeed * cam->cameraFront;
+        cam->cameraPosition += directionVertical * cam->cameraSpeed;
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_S))
-        cam->cameraPosition -= cam->cameraSpeed * cam->cameraFront;
+        //cam->cameraPosition -= cam->cameraSpeed * cam->cameraFront;
+        cam->cameraPosition -= directionVertical * cam->cameraSpeed;
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_A))
-        cam->cameraPosition -= glm::normalize(glm::cross(cam->cameraFront, cam->cameraUp)) * cam->cameraSpeed;
+        cam->cameraPosition -= directionLateral * cam->cameraSpeed;
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_D))
-        cam->cameraPosition += glm::normalize(glm::cross(cam->cameraFront, cam->cameraUp)) * cam->cameraSpeed;
+        cam->cameraPosition += directionLateral * cam->cameraSpeed;
     
-    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_U))
-        cam->cameraPosition.y += cam->cameraSpeed;// glm::normalize(glm::cross(camera.cameraFront, camera.cameraUp)) * camera.cameraSpeed;
-    
-    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_J))
+    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_Z))
         cam->cameraPosition.y -= cam->cameraSpeed;
+    
+    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_X))
+        cam->cameraPosition.y += cam->cameraSpeed;
 }
 
 float cameraDistance(Camera *cam)
@@ -233,7 +245,7 @@ int main () {
     //mocking position, also can I only implemented the version of the method using the GeoPosition struct, not strings
     //GeoPosition start {"40,116",40,116,glm::vec2(40,116)};//around Beijing
     GeoPosition start;
-    start = Map::GetLocation();
+    start = Map::GetLocation(true);//added the option to mock the location or not
     std::vector<TrajParser> TrajList = TrajParser::LoadLocalTrajectories(start, trajectoryShader);
     
     //old way still availiable
@@ -549,7 +561,8 @@ int main () {
 
 
         //for testing the position
-        //std::cout << to_string(cameramatrix[3][0]) << " " << to_string(cameramatrix[3][1])<< " " << to_string(cameramatrix[3][2]) << "\n";
+//        std::cout << std::to_string(cameramatrix[3][0]) << " " << std::to_string(cameramatrix[3][1])<< " " << std::to_string(cameramatrix[3][2]) << "\n";
+        std::cout << camera.cameraPosition.x << " " << camera.cameraPosition.z << " " << camera.cameraPosition.y << "\n";
         
 //
 //        if (GLFW_PRESS == glfwGetKey (g_window, GLFW_KEY_ESCAPE)) {
