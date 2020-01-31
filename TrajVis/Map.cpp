@@ -428,7 +428,7 @@ GeoPosition Map::GetLocation(bool mockData)
     }
     else{
         latitude = 40.0f;
-        longitude = 116.0f;
+        longitude = 115.0f;
     }
     //lat = latitude;
     //lon = longitude;

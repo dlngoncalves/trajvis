@@ -71,6 +71,8 @@ struct shader_traj_point
 //SCREEN SPACE DEFERRED STUFF MIGHT BE BETTER FOR OPTIMIZATION
 //ALSO NEED TO FIGURE OUT MAP RENDERING/MATCHING
 
+
+//should separate input and camera modification stuff into classes
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
 
@@ -155,6 +157,14 @@ float cameraDistance(Camera *cam)
     //just vertical distance for zoom
     return abs(cam->cameraPosition.y - TrajParser::basePosition.y);
     
+}
+
+glm::vec2 cameraDislocation(Camera *cam)
+{
+    float cameraXoffset = camera.cameraPosition.x - camera.cameraStaticPosition.x;
+    float cameraZoffset = camera.cameraPosition.z - camera.cameraStaticPosition.z;
+    
+    return glm::vec2(cameraXoffset,cameraZoffset);
 }
 
 int main () {
@@ -398,7 +408,8 @@ int main () {
         camera.cameraSpeed = 500.0f * deltaTime;
         
         
-        glm::mat4 viewMatrix = glm::lookAt(camera.cameraPosition, camera.cameraPosition + camera.cameraFront, camera.cameraUp);
+        //glm::mat4 viewMatrix = glm::lookAt(camera.cameraPosition, camera.cameraPosition + camera.cameraFront, camera.cameraUp);
+        glm::mat4 viewMatrix = glm::lookAt(camera.cameraStaticPosition, camera.cameraStaticPosition + camera.cameraStaticFront, camera.cameraStaticUp);
         
 		_update_fps_counter (g_window);
 		
@@ -526,6 +537,28 @@ int main () {
             distance = curDistance;
         }
         
+        glm::vec2 dislocation = cameraDislocation(&camera);
+        //dont think this is needed for the larger than zero case
+        if(dislocation.x/100 >= 50){
+            //load right column
+            //reposition trajectories
+        }
+
+        if(dislocation.x/100 <=0 && dislocation.x/100 >= -50){
+            //load left column
+            //reposition trajectories
+        }
+        
+        if(dislocation.y/100 >= 50){
+            //load LOWER row
+            //reposition trajectories
+        }
+        
+        if(dislocation.y/100 <=0 && dislocation.y/100 >= -50){
+            //load UPPER row
+            //reposition trajectories
+        }
+        
         if(GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_T)){
             //xtrans += 0.001;
             //rotation += 0.001;
@@ -562,8 +595,9 @@ int main () {
 
         //for testing the position
 //        std::cout << std::to_string(cameramatrix[3][0]) << " " << std::to_string(cameramatrix[3][1])<< " " << std::to_string(cameramatrix[3][2]) << "\n";
-        std::cout << camera.cameraPosition.x << " " << camera.cameraPosition.z << " " << camera.cameraPosition.y << "\n";
-        
+        //std::cout << camera.cameraPosition.x << " " << camera.cameraPosition.z << " " << camera.cameraPosition.y << "\n";
+        //std::cout << camera.cameraUp.x << " " << camera.cameraUp.y << " " << camera.cameraUp.z << "\n";
+        std::cout << dislocation.x << " " << dislocation.y << "\n";
 //
 //        if (GLFW_PRESS == glfwGetKey (g_window, GLFW_KEY_ESCAPE)) {
 //            glfwSetWindowShouldClose (g_window, 1);
