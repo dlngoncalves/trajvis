@@ -116,6 +116,49 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     glm::vec3 right = glm::normalize(glm::cross(camera.cameraFront,glm::vec3(0.0,1.0,0.0)));
     camera.cameraUp = glm::normalize(glm::cross(right,camera.cameraFront));
 }
+
+enum class Direction{
+    East,
+    West,
+    North,
+    South
+};
+
+void ZoomIn(Camera *cam)
+{
+    cam->cameraPosition.y -= 100;
+}
+
+void ZoomOut(Camera *cam)
+{
+    cam->cameraPosition.y += 100;
+}
+
+void Pan(Direction panDirection,Camera *cam)
+{
+    glm::vec3 directionLateral = glm::normalize(glm::cross(glm::vec3(0.0,-1.0,0.0), glm::vec3(0.0,0.0,-1.0)));
+    glm::vec3 directionVertical = glm::normalize(glm::cross(glm::vec3(0.0,-1.0,0.0), glm::vec3(-1.0,0.0,0.0)));
+    
+    switch (panDirection) {
+        case Direction::East:
+            cam->cameraPosition -= directionLateral * cam->cameraSpeed;
+            break;
+        case Direction::West:
+            cam->cameraPosition -= directionLateral * cam->cameraSpeed;
+            break;
+        case Direction::North:
+            cam->cameraPosition += directionVertical * cam->cameraSpeed;
+            break;
+        case Direction::South:
+            cam->cameraPosition -= directionVertical * cam->cameraSpeed;
+            break;
+        default:
+            break;
+    }
+}
+
+
+
 //need to look again into the camera system
 void processs_keyboard(GLFWwindow *window, Camera *cam)
 {
@@ -125,31 +168,35 @@ void processs_keyboard(GLFWwindow *window, Camera *cam)
     //multiplying by the front vector changes the position in weird ways
     //this is a perfectly fine camera movement system but I think for sliding along the map I might need something else
     
-    glm::vec3 directionLateral = glm::normalize(glm::cross(glm::vec3(0.0,-1.0,0.0), glm::vec3(0.0,0.0,-1.0)));
-    glm::vec3 directionVertical = glm::normalize(glm::cross(glm::vec3(0.0,-1.0,0.0), glm::vec3(-1.0,0.0,0.0)));
+    //glm::vec3 directionLateral = glm::normalize(glm::cross(glm::vec3(0.0,-1.0,0.0), glm::vec3(0.0,0.0,-1.0)));
+    //glm::vec3 directionVertical = glm::normalize(glm::cross(glm::vec3(0.0,-1.0,0.0), glm::vec3(-1.0,0.0,0.0)));
     
     //glm::vec3 right = glm::normalize(glm::cross(cam->cameraFront, cam->cameraUp));
     //keeping old camera movement commented out - also added the direction vectors, so that should be a bit faster
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_W))
         //cam->cameraPosition += cam->cameraSpeed * cam->cameraFront;
-        cam->cameraPosition += directionVertical * cam->cameraSpeed;
+        //cam->cameraPosition += directionVertical * cam->cameraSpeed;
+        Pan(Direction::North, cam);
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_S))
         //cam->cameraPosition -= cam->cameraSpeed * cam->cameraFront;
-        cam->cameraPosition -= directionVertical * cam->cameraSpeed;
+        //cam->cameraPosition -= directionVertical * cam->cameraSpeed;
+        Pan(Direction::South, cam);
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_A))
-        cam->cameraPosition -= directionLateral * cam->cameraSpeed;
+        //cam->cameraPosition -= directionLateral * cam->cameraSpeed;
+        Pan(Direction::West, cam);
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_D))
-        cam->cameraPosition += directionLateral * cam->cameraSpeed;
+        //cam->cameraPosition += directionLateral * cam->cameraSpeed;
+        Pan(Direction::East, cam);
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_Z))
-        cam->cameraPosition.y -= cam->cameraSpeed;
+        ZoomIn(cam);
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_X))
-        cam->cameraPosition.y += cam->cameraSpeed;
+        ZoomOut(cam);
 }
 
 float cameraDistance(Camera *cam)
@@ -270,6 +317,10 @@ int main () {
 
     //camera.cameraPosition.y = trajetory.positions[0].y;
     glm::mat4 perspectiveMatrix = glm::perspective(glm::radians(45.0f), (float)g_gl_width / g_gl_height, 0.1f, 10000.0f);
+    
+    //keeping this for compatibility, but... not a good name for this case
+    //glm::mat4 perspectiveMatrix = glm::ortho(0, (float)g_gl_width, (float)g_gl_height, 0, 0.1, -10000.0); //not working, look how I built this before
+    //glm::mat4 perspectiveMatrix = glm::orthoLH(0, g_gl_width, g_gl_height, 0, 0, -10000);
     
     //this kinda works for ortographic perspective (but movement and viewing volume are not ok)
     //glm::mat4 perspectiveMatrix = glm::ortho<float>(0.0f, (float)g_gl_width,-(float)g_gl_height,(float)g_gl_height, -1000.f, +1000.0f);
@@ -500,7 +551,7 @@ int main () {
 /*-----------------------------move camera here-------------------------------*/
 		// control keys
         processs_keyboard(g_window, &camera);
-        
+        //this should be every key pressed now
         float curDistance = cameraDistance(&camera);
         if(abs(distance-curDistance) > 100){
             //ratio = 1/curDistance;
@@ -525,6 +576,10 @@ int main () {
                 //really need to put this in a function
                 float posX = Map::long2tilexpx(startPos.x, Map::zoom);
                 float posY = Map::lat2tileypx(startPos.z, Map::zoom);
+                
+                //will this even make sense?
+                //float posX = Map::long2tilexpx(camera.cameraPosition.x, Map::zoom);
+                //float posY = Map::lat2tileypx(camera.cameraPosition.z, Map::zoom);
 
                 float translatedX = (posX *200) -100;
                 float translatedY = (posY *200) -100;

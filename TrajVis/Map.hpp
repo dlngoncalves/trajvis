@@ -177,6 +177,14 @@ public:
     Tile testTile;
     void GetMapData(float lat, float lon, int zoomLevel);
     void LoadMap(float lat, float lon, int zoomLevel);
+    
+    void LoadEast();
+    void LoadWest();
+    void LoadNorth();
+    void LoadSouth();
+    
+    void RecenterMap();
+    
     unsigned char* image_data;
     GLuint textureID;
     static int long2tilex(double lon, int z);
