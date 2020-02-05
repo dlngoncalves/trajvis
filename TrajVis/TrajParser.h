@@ -19,6 +19,7 @@
 #include "Weather.h"
 #include "GLSLShader.h"
 #include "Map.hpp"
+#include "Renderer.h"
 //moved weather stuff out of here and into its own class
 
 
@@ -40,7 +41,7 @@ struct TrajSeg
 };
 
 
-class TrajParser {
+class TrajParser : public Renderable {
     
 protected:
     
@@ -74,7 +75,9 @@ public:
     
     static void ResetScale(double lat, double lon, std::vector<TrajParser> *trajectories);// not really reset in the sense of restarting, but of setting again
     
-	//probably wont be static
+    static void ResetPositions(double lat, double lon, std::vector<TrajParser> *trajectories); //would be better to just update model matrix
+	
+    //probably wont be static
     static float simpleDistance(glm::vec2 pos1, glm::vec2 pos2);
     
 	//probably wont be static
@@ -97,6 +100,11 @@ public:
     {
         //empty constructor to load data from database
     }
+    
+    static void UpdateTrajMatrix();
+    
+        
+    
     
     static glm::vec3 basePosition;
     
@@ -134,6 +142,8 @@ public:
     GLuint vertexArrayObject;
     GLuint speedArrayObject;
     void SetupData();
+    
+    virtual void Render();
 };
 
 //class GeolifeTrajectory : public TrajParser

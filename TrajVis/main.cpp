@@ -117,12 +117,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     camera.cameraUp = glm::normalize(glm::cross(right,camera.cameraFront));
 }
 
-enum class Direction{
-    East,
-    West,
-    North,
-    South
-};
 
 void ZoomIn(Camera *cam)
 {
@@ -134,33 +128,48 @@ void ZoomOut(Camera *cam)
     cam->cameraPosition.y += 100;
 }
 
-void Pan(Direction panDirection,Camera *cam)
+void Pan(Direction panDirection,Camera *cam,Map *curMap, std::vector<TrajParser> *trajectories)
 {
     glm::vec3 directionLateral = glm::normalize(glm::cross(glm::vec3(0.0,-1.0,0.0), glm::vec3(0.0,0.0,-1.0)));
     glm::vec3 directionVertical = glm::normalize(glm::cross(glm::vec3(0.0,-1.0,0.0), glm::vec3(-1.0,0.0,0.0)));
     
+//we are not going to use the cameraPosition for panning the map, but keeping it here for compability
     switch (panDirection) {
         case Direction::East:
             cam->cameraPosition -= directionLateral * cam->cameraSpeed;
+            curMap->LoadEast();
             break;
         case Direction::West:
             cam->cameraPosition -= directionLateral * cam->cameraSpeed;
+            curMap->LoadWest();
             break;
         case Direction::North:
             cam->cameraPosition += directionVertical * cam->cameraSpeed;
+            curMap->LoadNorth();
             break;
         case Direction::South:
             cam->cameraPosition -= directionVertical * cam->cameraSpeed;
+            curMap->LoadSouth();
             break;
         default:
             break;
     }
+    
+    //float *mat = glm::value_ptr(*trajMat);
+    
+    //glm::mat4 newTrajMat =
+    TrajParser::ResetPositions(curMap->lat, curMap->lon,trajectories);
+    
+    //float *mat = glm::value_ptr(newTrajMat);
+    
+    //trajMat = mat;
+    //trajMat->
 }
 
 
 
 //need to look again into the camera system
-void processs_keyboard(GLFWwindow *window, Camera *cam)
+void processs_keyboard(GLFWwindow *window, Camera *cam,Map *map, std::vector<TrajParser> *trajectories)
 {
     if (GLFW_PRESS == glfwGetKey (window, GLFW_KEY_ESCAPE)) {
         glfwSetWindowShouldClose (window, 1);
@@ -177,20 +186,20 @@ void processs_keyboard(GLFWwindow *window, Camera *cam)
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_W))
         //cam->cameraPosition += cam->cameraSpeed * cam->cameraFront;
         //cam->cameraPosition += directionVertical * cam->cameraSpeed;
-        Pan(Direction::North, cam);
+        Pan(Direction::North, cam,map, trajectories);
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_S))
         //cam->cameraPosition -= cam->cameraSpeed * cam->cameraFront;
         //cam->cameraPosition -= directionVertical * cam->cameraSpeed;
-        Pan(Direction::South, cam);
+        Pan(Direction::South, cam,map, trajectories);
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_A))
         //cam->cameraPosition -= directionLateral * cam->cameraSpeed;
-        Pan(Direction::West, cam);
+        Pan(Direction::West, cam,map, trajectories);
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_D))
         //cam->cameraPosition += directionLateral * cam->cameraSpeed;
-        Pan(Direction::East, cam);
+        Pan(Direction::East, cam,map, trajectories);
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_Z))
         ZoomIn(cam);
@@ -213,6 +222,12 @@ glm::vec2 cameraDislocation(Camera *cam)
     
     return glm::vec2(cameraXoffset,cameraZoffset);
 }
+
+
+//pipeline (in a way) for loading (and re loading trajectories and the map)
+//get the center -- get number of tiles -- get upper left, upper right, lower left, lower right corners (have to see what is needed)
+//adjust search query accordingly
+//changed the center - get new center -- change trajectory model matrix
 
 int main () {
 	assert (restart_gl_log ());
@@ -550,7 +565,7 @@ int main () {
         //thats probably why there is a camera movement part and a model movement part I think. need to clean thisss
 /*-----------------------------move camera here-------------------------------*/
 		// control keys
-        processs_keyboard(g_window, &camera);
+        processs_keyboard(g_window, &camera,&myMap, &TrajList);
         //this should be every key pressed now
         float curDistance = cameraDistance(&camera);
         if(abs(distance-curDistance) > 100){

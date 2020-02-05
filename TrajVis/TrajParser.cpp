@@ -202,6 +202,7 @@ std::vector<TrajParser> TrajParser::LoadLocalTrajectories(GeoPosition location, 
     std::string query;
     char *zErrMsg = 0;
     
+    //this minLat maxLat stuff will be based on the limits of the map, at the current zoom level, at the current map size
     float latDelta = 1.0;//this will be more complex later
     float lonDelta = 1.0;
     
@@ -495,6 +496,23 @@ void TrajParser::ResetScale(double lat, double lon, std::vector<TrajParser> *tra
     }
 }
 
+void TrajParser::ResetPositions(double lat, double lon, std::vector<TrajParser> *trajectories)
+{
+    //gonna need to load and unload trajectories by tile
+    //just kinda assume that it wont be null or empty
+
+    TrajParser::basePosition = trajectories->at(0).latLonToMeters(lat, lon, Map::zoom);
+    
+    
+    for(auto &curTraj : *trajectories){
+        for(int i = 0; i < curTraj.positions.size(); i++){
+            curTraj.positions[i] = TrajParser::convertLatLon(curTraj.segList[i], TrajParser::basePosition);
+        }
+        curTraj.SetupData();
+    }
+
+}
+
 float TrajParser::simpleDistance(glm::vec2 pos1, glm::vec2 pos2)
 {
 	//this first calculation is not very precise, so will use the other one
@@ -670,4 +688,10 @@ float * TrajParser::getWeatherVector()
     }
     
     return weatherArray;
+}
+
+//just playing around with some stuff
+void TrajParser::Render()
+{
+    
 }

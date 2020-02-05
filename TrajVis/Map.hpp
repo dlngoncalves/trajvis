@@ -17,6 +17,14 @@
 
 #define TILEMAP_SIZE 5
 //class or struct?
+
+enum class Direction{
+    East,
+    West,
+    North,
+    South
+};
+
 struct Tile
 {
     public :
@@ -183,7 +191,7 @@ public:
     void LoadNorth();
     void LoadSouth();
     
-    void RecenterMap();
+    void RecenterMap(Direction centerDirection);
     
     unsigned char* image_data;
     GLuint textureID;

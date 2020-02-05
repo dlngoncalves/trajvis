@@ -230,6 +230,62 @@ void Map::FillMapTiles()
     }
 }
 
+void Map::RecenterMap(Direction centerDirection)
+{
+    xCenter = long2tilex(lon, curZoom);
+    yCenter = lat2tiley(lat, curZoom);
+    
+    switch (centerDirection) {
+        case Direction::East:
+            xCenter++;
+            break;
+        case Direction::West:
+            xCenter--;
+            break;
+        case Direction::North:
+            yCenter++;
+            break;
+        case Direction::South:
+            yCenter--;
+            break;
+        default:
+            break;
+    }
+    
+    lat = tiley2lat(yCenter, curZoom);
+    lon = tilex2long(xCenter, curZoom);
+    
+    //this is the same as above
+    for(int i = 0; i < TILEMAP_SIZE; i++){
+        for(int j = 0; j < TILEMAP_SIZE; j++){
+            tileMap[i][j].GetMapData(xCenter, yCenter,i,j, curZoom);
+            if(Map::zoom <= 14)
+                tileMap[i][j].GetHeightData(xCenter, yCenter,i,j, curZoom);
+        }
+    }
+}
+
+void Map::LoadEast()
+{
+    RecenterMap(Direction::East);
+}
+
+void Map::LoadWest()
+{
+    RecenterMap(Direction::West);
+}
+
+void Map::LoadNorth()
+{
+    RecenterMap(Direction::North);
+}
+
+void Map::LoadSouth()
+{
+    RecenterMap(Direction::South);
+}
+
+//considering its lat based, should we not have a scale per tile line?
 float Tile::recalculateScale(float lat,int newZoom)
 {
     int earthRadius = 6378137;
