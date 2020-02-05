@@ -120,6 +120,8 @@ class Map {
 public:
     
     static int zoom;
+    static float lat;
+    static float lon;
     
     float mapSurface[18]{
         //this should probably be more generic
@@ -167,8 +169,6 @@ public:
     Map(float newLat, float newLon, int zoom, GLSLShader &shader);
     ~Map();
     
-    float lat;
-    float lon;
     
     
     //need a vector to save multiple tiles maybe?

@@ -28,18 +28,20 @@ std::string apikey = "?access_token=pk.eyJ1Ijoic2Vub3JzcGFya2xlIiwiYSI6ImNqdXU4O
 using json = nlohmann::json;
 
 int Map::zoom;
+float Map::lat;
+float Map::lon;
 
 //might make sense to recalculate lat/lon from tile position
 Map::Map(float newLat, float newLon, int zoom, GLSLShader &shader) : myShader(shader)
 //Map::Map(GLSLShader &shader) : myShader(shader)
 {
     //why not initialization list?
-    lat = newLat;
-    lon = newLon;
+    Map::lat = newLat;
+    Map::lon = newLon;
     curZoom = zoom;
     
-    xCenter = long2tilex(lon, curZoom);
-    yCenter = lat2tiley(lat, curZoom);
+    xCenter = long2tilex(Map::lon, curZoom);
+    yCenter = lat2tiley(Map::lat, curZoom);
     
     //SetupData();
     
@@ -218,8 +220,8 @@ static size_t WriteCallBackLocation(void *contents, size_t size, size_t nmemb, v
 void Map::FillMapTiles()
 {
     
-    xCenter = long2tilex(lon, curZoom);
-    yCenter = lat2tiley(lat, curZoom);
+    xCenter = long2tilex(Map::lon, curZoom);
+    yCenter = lat2tiley(Map::lat, curZoom);
     
     for(int i = 0; i < TILEMAP_SIZE; i++){
         for(int j = 0; j < TILEMAP_SIZE; j++){
@@ -232,8 +234,8 @@ void Map::FillMapTiles()
 
 void Map::RecenterMap(Direction centerDirection)
 {
-    xCenter = long2tilex(lon, curZoom);
-    yCenter = lat2tiley(lat, curZoom);
+    xCenter = long2tilex(Map::lon, curZoom);
+    yCenter = lat2tiley(Map::lat, curZoom);
     
     switch (centerDirection) {
         case Direction::East:
@@ -243,17 +245,17 @@ void Map::RecenterMap(Direction centerDirection)
             xCenter--;
             break;
         case Direction::North:
-            yCenter++;
+            yCenter--;
             break;
         case Direction::South:
-            yCenter--;
+            yCenter++;
             break;
         default:
             break;
     }
     
-    lat = tiley2lat(yCenter, curZoom);
-    lon = tilex2long(xCenter, curZoom);
+    Map::lat = tiley2lat(yCenter, curZoom);
+    Map::lon = tilex2long(xCenter, curZoom);
     
     //this is the same as above
     for(int i = 0; i < TILEMAP_SIZE; i++){
@@ -483,8 +485,13 @@ GeoPosition Map::GetLocation(bool mockData)
         longitude = locationObj["longitude"].get<float>();
     }
     else{
-        latitude = 40.0f;
-        longitude = 115.0f;
+        //china - not beijing
+//        latitude = 40.0f;
+//        longitude = 115.0f;
+        
+        //barcelona
+        latitude = 41.5f;
+        longitude = 1.5f;
     }
     //lat = latitude;
     //lon = longitude;

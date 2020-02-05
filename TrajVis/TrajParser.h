@@ -86,6 +86,8 @@ public:
 	//probably wont be static
 	static float getInstantSpeed(const TrajSeg &seg1, const TrajSeg &seg2);
 
+    static glm::mat4 SetTrajMatrix(float lat,float lon);
+    
     void SetSpeed();
     
     void SetAverageSpeed();
