@@ -264,6 +264,47 @@ glm::vec2 cameraDislocation(Camera *cam)
 }
 
 
+static void SetZoomLevel(std::vector<TrajParser> &TrajList, float curDistance, GLSLShader &mapShader, Map &myMap, float &ratio, const glm::vec3 &startPos, glm::mat4 &trajMatrix, int &zoom) {
+    ratio = 1-(round(curDistance)/1000);
+    //int newZoom = (int)floor(5000 * ratio);
+    int newZoom = int(floor((10*ratio) + 9));
+    newZoom > 19 ? newZoom = 19 : newZoom = newZoom; //changing here for a max of 15 until we deal with the height issue
+    newZoom < 0 ? newZoom = 0 : newZoom = newZoom;
+    
+    //zoom = (int)floor(5000 * ratio);
+    if(newZoom != zoom){
+        //myMap.GetMapData(-30.057637, -51.171501,newZoom);
+        zoom = newZoom;
+        myMap.curZoom = zoom;
+        Map::zoom = zoom;
+        myMap.FillMapTiles();
+        mapShader.Use();
+        glUniform1f(mapShader("curZoom"), Map::zoom);
+        mapShader.UnUse();
+        TrajParser::ResetScale(Map::lat, Map::lon, &TrajList);
+        
+        //really need to put this in a function
+        float posX = Map::long2tilexpx(startPos.x, Map::zoom);
+        float posY = Map::lat2tileypx(startPos.z, Map::zoom);
+        
+        //will this even make sense?
+        //float posX = Map::long2tilexpx(camera.cameraPosition.x, Map::zoom);
+        //float posY = Map::lat2tileypx(camera.cameraPosition.z, Map::zoom);
+        
+        float translatedX = (posX *200) -100;
+        float translatedY = (posY *200) -100;
+        
+        //trajMatrix = glm::mat4(1.0);
+        //trajMatrix = glm::translate(trajMatrix, glm::vec3(translatedX,ytrans,translatedY));
+        //trajMatrix = glm::rotate<float>(trajMatrix, -M_PI, glm::vec3(1.0,0.0,0.0));
+        
+        trajMatrix = TrajParser::SetTrajMatrix(Map::lon, Map::lat);
+        Tile::tileScale = Tile::recalculateScale(Map::lat, Map::zoom);
+        
+        //TrajParser::ResetPositions(startPos.z, startPos.x, &TrajList);
+    }
+}
+
 //pipeline (in a way) for loading (and re loading trajectories and the map)
 //get the center -- get number of tiles -- get upper left, upper right, lower left, lower right corners (have to see what is needed)
 //adjust search query accordingly
@@ -611,44 +652,7 @@ int main () {
         float curDistance = cameraDistance(&camera);
         if(abs(distance-curDistance) > 100){
             //ratio = 1/curDistance;
-            ratio = 1-(round(curDistance)/1000);
-            //int newZoom = (int)floor(5000 * ratio);
-            int newZoom = int(floor((10*ratio) + 9));
-            newZoom > 19 ? newZoom = 19 : newZoom = newZoom; //changing here for a max of 15 until we deal with the height issue
-            newZoom < 0 ? newZoom = 0 : newZoom = newZoom;
-
-            //zoom = (int)floor(5000 * ratio);
-            if(newZoom != zoom){
-                //myMap.GetMapData(-30.057637, -51.171501,newZoom);
-                zoom = newZoom;
-                myMap.curZoom = zoom;
-                Map::zoom = zoom;
-                myMap.FillMapTiles();
-                mapShader.Use();
-                glUniform1f(mapShader("curZoom"), Map::zoom);
-                mapShader.UnUse();
-                TrajParser::ResetScale(Map::lat, Map::lon, &TrajList);
-
-                //really need to put this in a function
-                float posX = Map::long2tilexpx(startPos.x, Map::zoom);
-                float posY = Map::lat2tileypx(startPos.z, Map::zoom);
-
-                //will this even make sense?
-                //float posX = Map::long2tilexpx(camera.cameraPosition.x, Map::zoom);
-                //float posY = Map::lat2tileypx(camera.cameraPosition.z, Map::zoom);
-
-                float translatedX = (posX *200) -100;
-                float translatedY = (posY *200) -100;
-
-                //trajMatrix = glm::mat4(1.0);
-                //trajMatrix = glm::translate(trajMatrix, glm::vec3(translatedX,ytrans,translatedY));
-                //trajMatrix = glm::rotate<float>(trajMatrix, -M_PI, glm::vec3(1.0,0.0,0.0));
-
-                trajMatrix = TrajParser::SetTrajMatrix(Map::lon, Map::lat);
-                Tile::tileScale = Tile::recalculateScale(Map::lat, Map::zoom);
-                
-                //TrajParser::ResetPositions(startPos.z, startPos.x, &TrajList);
-            }
+            SetZoomLevel(TrajList, curDistance, mapShader, myMap, ratio, startPos, trajMatrix, zoom);
             distance = curDistance;
         }
         
