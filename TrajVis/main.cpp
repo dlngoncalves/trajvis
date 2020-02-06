@@ -255,15 +255,6 @@ float cameraDistance(Camera *cam)
     
 }
 
-glm::vec2 cameraDislocation(Camera *cam)
-{
-    float cameraXoffset = camera.cameraPosition.x - camera.cameraStaticPosition.x;
-    float cameraZoffset = camera.cameraPosition.z - camera.cameraStaticPosition.z;
-    
-    return glm::vec2(cameraXoffset,cameraZoffset);
-}
-
-
 static void SetZoomLevel(std::vector<TrajParser> &TrajList, float curDistance, GLSLShader &mapShader, Map &myMap, float &ratio, const glm::vec3 &startPos, glm::mat4 &trajMatrix, int &zoom) {
     ratio = 1-(round(curDistance)/1000);
     //int newZoom = (int)floor(5000 * ratio);
@@ -656,38 +647,7 @@ int main () {
             distance = curDistance;
         }
         
-        glm::vec2 dislocation = cameraDislocation(&camera);
-        //dont think this is needed for the larger than zero case`
-        if(dislocation.x/100 >= 50){
-            //load right column
-            //reposition trajectories
-        }
-
-        if(dislocation.x/100 <=0 && dislocation.x/100 >= -50){
-            //load left column
-            //reposition trajectories
-        }
-        
-        if(dislocation.y/100 >= 50){
-            //load LOWER row
-            //reposition trajectories
-        }
-        
-        if(dislocation.y/100 <=0 && dislocation.y/100 >= -50){
-            //load UPPER row
-            //reposition trajectories
-        }
-        
-        if(GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_T)){
-            //xtrans += 0.001;
-            //rotation += 0.001;
-
-        }
-        if(GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_Y)){
-            //xtrans -= 0.001;
-            //rotation -= 0.001;
-        }
-        
+        //should move this stuff into the keyboard function
         if(GLFW_PRESS == glfwGetKey(g_window,GLFW_KEY_1))
         {
             mode = 1;
@@ -716,7 +676,7 @@ int main () {
 //        std::cout << std::to_string(cameramatrix[3][0]) << " " << std::to_string(cameramatrix[3][1])<< " " << std::to_string(cameramatrix[3][2]) << "\n";
         //std::cout << camera.cameraPosition.x << " " << camera.cameraPosition.z << " " << camera.cameraPosition.y << "\n";
         //std::cout << camera.cameraUp.x << " " << camera.cameraUp.y << " " << camera.cameraUp.z << "\n";
-        std::cout << dislocation.x << " " << dislocation.y << "\n";
+        
 //
 //        if (GLFW_PRESS == glfwGetKey (g_window, GLFW_KEY_ESCAPE)) {
 //            glfwSetWindowShouldClose (g_window, 1);
