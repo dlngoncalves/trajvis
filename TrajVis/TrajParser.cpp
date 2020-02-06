@@ -216,10 +216,21 @@ std::vector<TrajParser> TrajParser::LoadLocalTrajectories(GeoPosition location, 
     
     int rc = sqlite3_open("trajectories.db", &db);
 
-    std::string minLat = std::to_string(location.lat-latDelta);
-    std::string maxLat = std::to_string(location.lat+latDelta);
-    std::string minLon = std::to_string(location.lon-lonDelta);
-    std::string maxLon = std::to_string(location.lon+lonDelta);
+    std::vector<glm::vec2> corners;//2 cornerss
+    
+    corners = Map::Corners(location);
+    
+    //this doesnt work if we are between zones
+    std::string minLat = std::to_string(corners[1].x);//should map lat to y and lon to x
+    std::string maxLat = std::to_string(corners[0].x);
+    
+    std::string minLon = std::to_string(corners[0].y);
+    std::string maxLon = std::to_string(corners[1].y);
+
+    //std::string minLat = std::to_string(location.lat-latDelta);
+    //std::string maxLat = std::to_string(location.lat+latDelta);
+    //std::string minLon = std::to_string(location.lon-lonDelta);
+    //std::string maxLon = std::to_string(location.lon+lonDelta);
     
     query = "SELECT DISTINCT TRAJECTORYNAME FROM TRAJSEG WHERE LATITUDE BETWEEN " + minLat + " AND " + maxLat + " AND LONGITUDE BETWEEN "
     + minLon + " AND " + maxLon + ";";
