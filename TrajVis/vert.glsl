@@ -8,6 +8,7 @@ layout (location = 2) in float speed;
 uniform mat4 projection_mat, view_mat, model_mat;
 uniform float averageSpeed;
 
+out vec4 screenPosition;
 out vec3 position_eye;
 //out vec3 vertColorTemp;
 out vec3 vertColorTemp_g;
@@ -30,7 +31,7 @@ void main () {
     
     vertColorTemp_g = vertex_temp;
     speed_g = speed;
-	
+    screenPosition = projection_mat * view_mat * model_mat * vec4(vertex_position,1.0);
 //    gl_Position = projection_mat * view_mat * model_mat * vec4(vertex_position,1.0);
     gl_Position = vec4(vertex_position,1.0);
 }

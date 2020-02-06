@@ -5,11 +5,40 @@ layout (triangle_strip, max_vertices = 5) out;
 
 in vec3 vertColorTemp_g[];
 in float speed_g[];
+in vec4 screenPosition[];
 out vec3 vertColorTemp;
 
 uniform mat4 projection_mat, view_mat, model_mat;
 uniform float averageSpeed;
 uniform int mode;
+uniform vec2 windowSize;
+
+vec2 ToScreenSpace(vec4 vertex)
+{
+    return vec2( vertex.xy / vertex.w ) * windowSize;
+    
+    //return vec2(vertex.xy);
+}
+
+bool isOutside()
+{
+    vec2 screenCoords1 = ToScreenSpace(screenPosition[1]);
+    vec2 screenCoords2 = ToScreenSpace(screenPosition[2]);
+    
+    vec2 area = windowSize;
+    area.x *= 0.66667; //this is valid for the current projection/viewport
+
+    if(screenCoords1.x < -area.x || screenCoords1.x > area.x)
+        return true;
+    if(screenCoords2.x < -area.x || screenCoords2.x > area.x)
+        return true;
+    if(screenCoords1.y < -area.y || screenCoords1.y > area.y)
+        return true;
+    if(screenCoords2.y < -area.y || screenCoords2.y > area.y)
+        return true;
+    
+    return false;
+}
 
 void main() {
     
@@ -28,6 +57,9 @@ void main() {
         thickness2 = clamp(speed_g[2]/averageSpeed,0.1,3.0);
         color = vec3((speed_g[1]/averageSpeed),0.1,0.1);
     }
+    
+    if(isOutside())
+        return;
     
     //need to work with elevation data here
     float constantHeight = gl_in[1].gl_Position.y;

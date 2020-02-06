@@ -39,8 +39,8 @@
 #define NUM_WAVES 5
 
 // keep track of window size for things like the viewport and the mouse cursor
-int g_gl_width = 1400;
-int g_gl_height = 1050;
+int g_gl_width = 1280;
+int g_gl_height = 720;
 GLFWwindow* g_window = NULL;
 
 Camera camera;
@@ -339,6 +339,7 @@ int main () {
     trajectoryShader.AddUniform("model_mat");
     trajectoryShader.AddUniform("averageSpeed");
     trajectoryShader.AddUniform("mode");
+    trajectoryShader.AddUniform("windowSize");
     trajectoryShader.UnUse();
     
     GLSLShader mapShader;
@@ -434,6 +435,7 @@ int main () {
     trajectoryShader.Use();
     glUniformMatrix4fv(trajectoryShader("projection_mat"), 1, GL_FALSE, glm::value_ptr(perspectiveMatrix));
     glUniform1i(trajectoryShader("mode"), mode);
+    glUniform2fv(trajectoryShader("windowSize"), 1, glm::value_ptr(glm::vec2(g_gl_width,g_gl_height)));
     
     mapShader.Use();
     glUniformMatrix4fv(mapShader("projection_mat"), 1, GL_FALSE, glm::value_ptr(perspectiveMatrix));
