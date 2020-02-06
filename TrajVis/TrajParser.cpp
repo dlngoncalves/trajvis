@@ -84,10 +84,18 @@ static int trajSegCallback(void *Trajectory, int argc, char **argv, char **azCol
 
         columnCount++;
         if(columnCount == 7){
+            
             if(TrajParser::basePosition.x == 0 && TrajParser::basePosition.y == 0 && TrajParser::basePosition.z == 0){
+                //think over here we should get the map lat/lon
+//                int x = Map::long2tilex(auxSeg.lon,Map::zoom);
+//                int y = Map::lat2tiley(auxSeg.lat, Map::zoom);
                 
-                int x = Map::long2tilex(auxSeg.lon,Map::zoom);
-                int y = Map::lat2tiley(auxSeg.lat, Map::zoom);
+                //but im not sure I'm updating this
+                //41.5f;
+                //1.5f;
+                int x = Map::long2tilex(1.5f,Map::zoom);
+                int y = Map::lat2tiley(41.5f, Map::zoom);
+
                 
                 double returnedLat = Map::tiley2lat(y, Map::zoom);
                 double returnedLon = Map::tilex2long(x, Map::zoom);
@@ -202,6 +210,7 @@ std::vector<TrajParser> TrajParser::LoadLocalTrajectories(GeoPosition location, 
     std::string query;
     char *zErrMsg = 0;
     
+    //this minLat maxLat stuff will be based on the limits of the map, at the current zoom level, at the current map size
     float latDelta = 1.0;//this will be more complex later
     float lonDelta = 1.0;
     
@@ -495,6 +504,24 @@ void TrajParser::ResetScale(double lat, double lon, std::vector<TrajParser> *tra
     }
 }
 
+void TrajParser::ResetPositions(double lat, double lon, std::vector<TrajParser> *trajectories)
+{
+    //gonna need to load and unload trajectories by tile
+    //just kinda assume that it wont be null or empty
+
+    //this is not using the trajectory as a base position, just a dumb way of using the method on a static function
+    TrajParser::basePosition = trajectories->at(0).latLonToMeters(lat, lon, Map::zoom);
+    
+    
+    for(auto &curTraj : *trajectories){
+        for(int i = 0; i < curTraj.positions.size(); i++){
+            curTraj.positions[i] = TrajParser::convertLatLon(curTraj.segList[i], TrajParser::basePosition);
+        }
+        curTraj.SetupData();
+    }
+
+}
+
 float TrajParser::simpleDistance(glm::vec2 pos1, glm::vec2 pos2)
 {
 	//this first calculation is not very precise, so will use the other one
@@ -670,4 +697,26 @@ float * TrajParser::getWeatherVector()
     }
     
     return weatherArray;
+}
+
+glm::mat4 TrajParser::SetTrajMatrix(float lat,float lon)
+{
+    float posX = Map::long2tilexpx(lat, Map::zoom);
+    float posY = Map::lat2tileypx(lon, Map::zoom);
+    
+    float translatedX = (posX *200) -100;
+    float translatedY = (posY *200) -100;
+
+    glm::mat4 trajMatrix = glm::mat4(1.0);
+    
+    trajMatrix = glm::translate(trajMatrix, glm::vec3(translatedX,5,translatedY));
+    trajMatrix = glm::rotate<float>(trajMatrix, -M_PI, glm::vec3(1.0,0.0,0.0));
+    
+    return trajMatrix;
+}
+
+//just playing around with some stuff
+void TrajParser::Render()
+{
+    
 }

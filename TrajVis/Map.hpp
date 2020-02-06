@@ -17,6 +17,14 @@
 
 #define TILEMAP_SIZE 5
 //class or struct?
+
+enum class Direction{
+    East,
+    West,
+    North,
+    South
+};
+
 struct Tile
 {
     public :
@@ -112,6 +120,8 @@ class Map {
 public:
     
     static int zoom;
+    static float lat;
+    static float lon;
     
     float mapSurface[18]{
         //this should probably be more generic
@@ -159,8 +169,6 @@ public:
     Map(float newLat, float newLon, int zoom, GLSLShader &shader);
     ~Map();
     
-    float lat;
-    float lon;
     
     
     //need a vector to save multiple tiles maybe?
@@ -177,6 +185,14 @@ public:
     Tile testTile;
     void GetMapData(float lat, float lon, int zoomLevel);
     void LoadMap(float lat, float lon, int zoomLevel);
+    
+    void LoadEast();
+    void LoadWest();
+    void LoadNorth();
+    void LoadSouth();
+    
+    void RecenterMap(Direction centerDirection);
+    
     unsigned char* image_data;
     GLuint textureID;
     static int long2tilex(double lon, int z);
@@ -190,7 +206,7 @@ public:
     
     void GetTile(int x, int y, int zoom);
     
-    static GeoPosition GetLocation();
+    static GeoPosition GetLocation(bool mockData = false);
     
     //will use one of these to redraw the entire tilemap
     void FillMapTiles();

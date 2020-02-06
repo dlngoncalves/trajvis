@@ -28,18 +28,20 @@ std::string apikey = "?access_token=pk.eyJ1Ijoic2Vub3JzcGFya2xlIiwiYSI6ImNqdXU4O
 using json = nlohmann::json;
 
 int Map::zoom;
+float Map::lat;
+float Map::lon;
 
 //might make sense to recalculate lat/lon from tile position
 Map::Map(float newLat, float newLon, int zoom, GLSLShader &shader) : myShader(shader)
 //Map::Map(GLSLShader &shader) : myShader(shader)
 {
     //why not initialization list?
-    lat = newLat;
-    lon = newLon;
+    Map::lat = newLat;
+    Map::lon = newLon;
     curZoom = zoom;
     
-    xCenter = long2tilex(lon, curZoom);
-    yCenter = lat2tiley(lat, curZoom);
+    xCenter = long2tilex(Map::lon, curZoom);
+    yCenter = lat2tiley(Map::lat, curZoom);
     
     //SetupData();
     
@@ -218,8 +220,8 @@ static size_t WriteCallBackLocation(void *contents, size_t size, size_t nmemb, v
 void Map::FillMapTiles()
 {
     
-    xCenter = long2tilex(lon, curZoom);
-    yCenter = lat2tiley(lat, curZoom);
+    xCenter = long2tilex(Map::lon, curZoom);
+    yCenter = lat2tiley(Map::lat, curZoom);
     
     for(int i = 0; i < TILEMAP_SIZE; i++){
         for(int j = 0; j < TILEMAP_SIZE; j++){
@@ -230,6 +232,62 @@ void Map::FillMapTiles()
     }
 }
 
+void Map::RecenterMap(Direction centerDirection)
+{
+    xCenter = long2tilex(Map::lon, curZoom);
+    yCenter = lat2tiley(Map::lat, curZoom);
+    
+    switch (centerDirection) {
+        case Direction::East:
+            xCenter++;
+            break;
+        case Direction::West:
+            xCenter--;
+            break;
+        case Direction::North:
+            yCenter--;
+            break;
+        case Direction::South:
+            yCenter++;
+            break;
+        default:
+            break;
+    }
+    
+    Map::lat = tiley2lat(yCenter, curZoom);
+    Map::lon = tilex2long(xCenter, curZoom);
+    
+    //this is the same as above
+    for(int i = 0; i < TILEMAP_SIZE; i++){
+        for(int j = 0; j < TILEMAP_SIZE; j++){
+            tileMap[i][j].GetMapData(xCenter, yCenter,i,j, curZoom);
+            if(Map::zoom <= 14)
+                tileMap[i][j].GetHeightData(xCenter, yCenter,i,j, curZoom);
+        }
+    }
+}
+
+void Map::LoadEast()
+{
+    RecenterMap(Direction::East);
+}
+
+void Map::LoadWest()
+{
+    RecenterMap(Direction::West);
+}
+
+void Map::LoadNorth()
+{
+    RecenterMap(Direction::North);
+}
+
+void Map::LoadSouth()
+{
+    RecenterMap(Direction::South);
+}
+
+//considering its lat based, should we not have a scale per tile line?
 float Tile::recalculateScale(float lat,int newZoom)
 {
     int earthRadius = 6378137;
@@ -404,24 +462,37 @@ void Map::GetMapData(float lat, float lon, int zoomLevel)
 //that change state and return nothing
 //maybe should add a lat/lon struct
 //making this static for now to call before trajectories are loaded
-GeoPosition Map::GetLocation()
+GeoPosition Map::GetLocation(bool mockData)
 {
-    //at this point should probably have a wrapper for curl stuff
-    std::string url =  "https://freegeoip.app/json/";
-    std::string responseBuffer;
-    CURL *handle = curl_easy_init();
-    if(handle){
-        CURLcode res;
-        curl_easy_setopt(handle, CURLOPT_URL,url.c_str());
-        curl_easy_setopt(handle,CURLOPT_WRITEFUNCTION,WriteCallBackLocation);
-        curl_easy_setopt(handle,CURLOPT_WRITEDATA,&responseBuffer);
-        res = curl_easy_perform(handle);
-    }
-    //wonder what happens when we dont receive the location
-    json locationObj = json::parse(responseBuffer);
-    float latitude =  locationObj["latitude"].get<float>();
-    float longitude = locationObj["longitude"].get<float>();
+    float latitude;
+    float longitude;
     
+    if(!mockData){
+        //at this point should probably have a wrapper for curl stuff
+        std::string url =  "https://freegeoip.app/json/";
+        std::string responseBuffer;
+        CURL *handle = curl_easy_init();
+        if(handle){
+            CURLcode res;
+            curl_easy_setopt(handle, CURLOPT_URL,url.c_str());
+            curl_easy_setopt(handle,CURLOPT_WRITEFUNCTION,WriteCallBackLocation);
+            curl_easy_setopt(handle,CURLOPT_WRITEDATA,&responseBuffer);
+            res = curl_easy_perform(handle);
+        }
+        //wonder what happens when we dont receive the location
+        json locationObj = json::parse(responseBuffer);
+        latitude =  locationObj["latitude"].get<float>();
+        longitude = locationObj["longitude"].get<float>();
+    }
+    else{
+        //china - not beijing
+//        latitude = 40.0f;
+//        longitude = 115.0f;
+        
+        //barcelona
+        latitude = 41.5f;
+        longitude = 1.5f;
+    }
     //lat = latitude;
     //lon = longitude;
     

@@ -71,6 +71,8 @@ struct shader_traj_point
 //SCREEN SPACE DEFERRED STUFF MIGHT BE BETTER FOR OPTIMIZATION
 //ALSO NEED TO FIGURE OUT MAP RENDERING/MATCHING
 
+
+//should separate input and camera modification stuff into classes
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
 
@@ -94,7 +96,10 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     yoffset *= sensitivity;
     
     camera.pitch += yoffset;
-    camera.yaw += xoffset;
+    camera.yaw += xoffset; //trying to change the way the camera works without a lot of changes - might not be good
+    //forcing the yaw stops rotating, for now thats what we want -
+    //but dont know if something weird might happen when we have trajectories being multiplied by the view matrix
+    //so keeping this for now, so we can rotate in weird ways
     
     if (camera.pitch > 89.0f)
         camera.pitch = 89.0f;
@@ -111,31 +116,136 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     glm::vec3 right = glm::normalize(glm::cross(camera.cameraFront,glm::vec3(0.0,1.0,0.0)));
     camera.cameraUp = glm::normalize(glm::cross(right,camera.cameraFront));
 }
+
+void Zoom(int direction, Map *map, GLSLShader &mapShader, std::vector<TrajParser> *trajectories)
+{
+    Map::zoom += direction;
+    map->curZoom = Map::zoom;
+    
+    map->FillMapTiles();
+    
+    mapShader.Use();
+    glUniform1f(mapShader("curZoom"), Map::zoom);
+    mapShader.UnUse();
+    
+    TrajParser::ResetScale(Map::lat, Map::lon, trajectories);
+    
+    //really need to put this in a function
+    //float posX = Map::long2tilexpx(startPos.x, Map::zoom);
+    //float posY = Map::lat2tileypx(startPos.z, Map::zoom);
+    
+    //will this even make sense?
+    //float posX = Map::long2tilexpx(camera.cameraPosition.x, Map::zoom);
+    //float posY = Map::lat2tileypx(camera.cameraPosition.z, Map::zoom);
+    
+//    float translatedX = (posX *200) -100;
+//    float translatedY = (posY *200) -100;
+    
+    //trajMatrix = glm::mat4(1.0);
+    //trajMatrix = glm::translate(trajMatrix, glm::vec3(translatedX,ytrans,translatedY));
+    //trajMatrix = glm::rotate<float>(trajMatrix, -M_PI, glm::vec3(1.0,0.0,0.0));
+    
+    //trajMatrix = TrajParser::SetTrajMatrix(Map::lat, Map::lon);
+    Tile::tileScale = Tile::recalculateScale(Map::lat, Map::zoom);
+}
+
+void ZoomIn(Camera *cam)
+{
+    cam->cameraPosition.y -= 100;
+//    Zoom(+1);
+}
+
+void ZoomOut(Camera *cam)
+{
+    cam->cameraPosition.y += 100;
+//    Zoom(-1);
+}
+
+void Pan(Direction panDirection,Camera *cam,Map *curMap, std::vector<TrajParser> *trajectories, glm::mat4 &TrajMatrix)
+{
+    glm::vec3 directionLateral = glm::normalize(glm::cross(glm::vec3(0.0,-1.0,0.0), glm::vec3(0.0,0.0,-1.0)));
+    glm::vec3 directionVertical = glm::normalize(glm::cross(glm::vec3(0.0,-1.0,0.0), glm::vec3(-1.0,0.0,0.0)));
+    
+//we are not going to use the cameraPosition for panning the map, but keeping it here for compability
+    switch (panDirection) {
+        case Direction::East:
+            //cam->cameraPosition -= directionLateral * cam->cameraSpeed;
+            cam->cameraPosition.x -= 200;
+            curMap->LoadEast();
+            break;
+        case Direction::West:
+            //cam->cameraPosition -= directionLateral * cam->cameraSpeed;
+            cam->cameraPosition.x += 200;
+            curMap->LoadWest();
+            break;
+        case Direction::North:
+            //cam->cameraPosition += directionVertical * cam->cameraSpeed;
+            cam->cameraPosition.z -= 200;
+            curMap->LoadNorth();
+            break;
+        case Direction::South:
+            //cam->cameraPosition -= directionVertical * cam->cameraSpeed;
+            cam->cameraPosition.z += 200;
+            curMap->LoadSouth();
+            break;
+        default:
+            break;
+    }
+    
+    //float *mat = glm::value_ptr(*trajMat);
+    
+    //glm::mat4 newTrajMat =
+    TrajParser::ResetPositions(Map::lat, Map::lon,trajectories);
+    
+    glm::mat4 trajmat = TrajParser::SetTrajMatrix(Map::lon, Map::lat);
+    
+    TrajMatrix = trajmat;
+    //float *mat = glm::value_ptr(newTrajMat);
+    
+    //trajMat = mat;
+    //trajMat->
+}
+
+
+
 //need to look again into the camera system
-void processs_keyboard(GLFWwindow *window, Camera *cam)
+void processs_keyboard(GLFWwindow *window, Camera *cam,Map *map, std::vector<TrajParser> *trajectories, glm::mat4 &trajMatrix)
 {
     if (GLFW_PRESS == glfwGetKey (window, GLFW_KEY_ESCAPE)) {
         glfwSetWindowShouldClose (window, 1);
     }
     //multiplying by the front vector changes the position in weird ways
     //this is a perfectly fine camera movement system but I think for sliding along the map I might need something else
+    
+    //glm::vec3 directionLateral = glm::normalize(glm::cross(glm::vec3(0.0,-1.0,0.0), glm::vec3(0.0,0.0,-1.0)));
+    //glm::vec3 directionVertical = glm::normalize(glm::cross(glm::vec3(0.0,-1.0,0.0), glm::vec3(-1.0,0.0,0.0)));
+    
+    //glm::vec3 right = glm::normalize(glm::cross(cam->cameraFront, cam->cameraUp));
+    //keeping old camera movement commented out - also added the direction vectors, so that should be a bit faster
+    
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_W))
-        cam->cameraPosition += cam->cameraSpeed * cam->cameraFront;
+        //cam->cameraPosition += cam->cameraSpeed * cam->cameraFront;
+        //cam->cameraPosition += directionVertical * cam->cameraSpeed;
+        Pan(Direction::North, cam,map, trajectories,trajMatrix);
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_S))
-        cam->cameraPosition -= cam->cameraSpeed * cam->cameraFront;
+        //cam->cameraPosition -= cam->cameraSpeed * cam->cameraFront;
+        //cam->cameraPosition -= directionVertical * cam->cameraSpeed;
+        Pan(Direction::South, cam,map, trajectories,trajMatrix);
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_A))
-        cam->cameraPosition -= glm::normalize(glm::cross(cam->cameraFront, cam->cameraUp)) * cam->cameraSpeed;
+        //cam->cameraPosition -= directionLateral * cam->cameraSpeed;
+        Pan(Direction::West, cam,map, trajectories,trajMatrix);
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_D))
-        cam->cameraPosition += glm::normalize(glm::cross(cam->cameraFront, cam->cameraUp)) * cam->cameraSpeed;
+        //cam->cameraPosition += directionLateral * cam->cameraSpeed;
+        Pan(Direction::East, cam,map, trajectories,trajMatrix);
     
-    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_U))
-        cam->cameraPosition.y += cam->cameraSpeed;// glm::normalize(glm::cross(camera.cameraFront, camera.cameraUp)) * camera.cameraSpeed;
+    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_Z))
+        ZoomIn(cam);
     
-    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_J))
-        cam->cameraPosition.y -= cam->cameraSpeed;
+    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_X))
+        ZoomOut(cam);
 }
 
 float cameraDistance(Camera *cam)
@@ -144,6 +254,52 @@ float cameraDistance(Camera *cam)
     return abs(cam->cameraPosition.y - TrajParser::basePosition.y);
     
 }
+
+static void SetZoomLevel(std::vector<TrajParser> &TrajList, float curDistance, GLSLShader &mapShader, Map &myMap, float &ratio, const glm::vec3 &startPos, glm::mat4 &trajMatrix, int &zoom) {
+    ratio = 1-(round(curDistance)/1000);
+    //int newZoom = (int)floor(5000 * ratio);
+    int newZoom = int(floor((10*ratio) + 9));
+    newZoom > 19 ? newZoom = 19 : newZoom = newZoom; //changing here for a max of 15 until we deal with the height issue
+    newZoom < 0 ? newZoom = 0 : newZoom = newZoom;
+    
+    //zoom = (int)floor(5000 * ratio);
+    if(newZoom != zoom){
+        //myMap.GetMapData(-30.057637, -51.171501,newZoom);
+        zoom = newZoom;
+        myMap.curZoom = zoom;
+        Map::zoom = zoom;
+        myMap.FillMapTiles();
+        mapShader.Use();
+        glUniform1f(mapShader("curZoom"), Map::zoom);
+        mapShader.UnUse();
+        TrajParser::ResetScale(Map::lat, Map::lon, &TrajList);
+        
+        //really need to put this in a function
+        float posX = Map::long2tilexpx(startPos.x, Map::zoom);
+        float posY = Map::lat2tileypx(startPos.z, Map::zoom);
+        
+        //will this even make sense?
+        //float posX = Map::long2tilexpx(camera.cameraPosition.x, Map::zoom);
+        //float posY = Map::lat2tileypx(camera.cameraPosition.z, Map::zoom);
+        
+        float translatedX = (posX *200) -100;
+        float translatedY = (posY *200) -100;
+        
+        //trajMatrix = glm::mat4(1.0);
+        //trajMatrix = glm::translate(trajMatrix, glm::vec3(translatedX,ytrans,translatedY));
+        //trajMatrix = glm::rotate<float>(trajMatrix, -M_PI, glm::vec3(1.0,0.0,0.0));
+        
+        trajMatrix = TrajParser::SetTrajMatrix(Map::lon, Map::lat);
+        Tile::tileScale = Tile::recalculateScale(Map::lat, Map::zoom);
+        
+        //TrajParser::ResetPositions(startPos.z, startPos.x, &TrajList);
+    }
+}
+
+//pipeline (in a way) for loading (and re loading trajectories and the map)
+//get the center -- get number of tiles -- get upper left, upper right, lower left, lower right corners (have to see what is needed)
+//adjust search query accordingly
+//changed the center - get new center -- change trajectory model matrix
 
 int main () {
 	assert (restart_gl_log ());
@@ -233,7 +389,7 @@ int main () {
     //mocking position, also can I only implemented the version of the method using the GeoPosition struct, not strings
     //GeoPosition start {"40,116",40,116,glm::vec2(40,116)};//around Beijing
     GeoPosition start;
-    start = Map::GetLocation();
+    start = Map::GetLocation(true);//added the option to mock the location or not
     std::vector<TrajParser> TrajList = TrajParser::LoadLocalTrajectories(start, trajectoryShader);
     
     //old way still availiable
@@ -248,6 +404,10 @@ int main () {
 
     //camera.cameraPosition.y = trajetory.positions[0].y;
     glm::mat4 perspectiveMatrix = glm::perspective(glm::radians(45.0f), (float)g_gl_width / g_gl_height, 0.1f, 10000.0f);
+    
+    //keeping this for compatibility, but... not a good name for this case
+    //glm::mat4 perspectiveMatrix = glm::ortho(0, (float)g_gl_width, (float)g_gl_height, 0, 0.1, -10000.0); //not working, look how I built this before
+    //glm::mat4 perspectiveMatrix = glm::orthoLH(0, g_gl_width, g_gl_height, 0, 0, -10000);
     
     //this kinda works for ortographic perspective (but movement and viewing volume are not ok)
     //glm::mat4 perspectiveMatrix = glm::ortho<float>(0.0f, (float)g_gl_width,-(float)g_gl_height,(float)g_gl_height, -1000.f, +1000.0f);
@@ -336,7 +496,8 @@ int main () {
     //glm::mat4 trajMatrix = myMap.tileMap[4][4].modelMatrix;
     
     //trajmatrix should be a class member
-    glm::mat4 trajMatrix = glm::mat4(1.0);
+    float ytrans = 5;
+    glm::mat4 trajMatrix = TrajParser::SetTrajMatrix(startPos.x, startPos.z);//glm::mat4(1.0);
     //trajMatrix = glm::translate(trajMatrix,glm::vec3(-(1)*200,-99,-TILEMAP_SIZE-1*200));
     
     //trajMatrix = glm::translate(trajMatrix,glm::vec3(-200,00,-400));
@@ -353,12 +514,12 @@ int main () {
     
     
     //dont think this is needed anymore
-    float xtrans = 0.0;
-    float ytrans = 5.0;
-    
-    
-    trajMatrix = glm::translate(trajMatrix, glm::vec3(translatedX,ytrans,translatedY));
-    trajMatrix = glm::rotate<float>(trajMatrix, -M_PI, glm::vec3(1.0,0.0,0.0));
+//    float xtrans = 0.0;
+//    float ytrans = 5.0;
+//
+//
+//    trajMatrix = glm::translate(trajMatrix, glm::vec3(translatedX,ytrans,translatedY));
+//    trajMatrix = glm::rotate<float>(trajMatrix, -M_PI, glm::vec3(1.0,0.0,0.0));
     
     
     //
@@ -386,7 +547,8 @@ int main () {
         camera.cameraSpeed = 500.0f * deltaTime;
         
         
-        glm::mat4 viewMatrix = glm::lookAt(camera.cameraPosition, camera.cameraPosition + camera.cameraFront, camera.cameraUp);
+        //glm::mat4 viewMatrix = glm::lookAt(camera.cameraPosition, camera.cameraPosition + camera.cameraFront, camera.cameraUp);
+        glm::mat4 viewMatrix = glm::lookAt(camera.cameraStaticPosition, camera.cameraStaticPosition + camera.cameraStaticFront, camera.cameraStaticUp);
         
 		_update_fps_counter (g_window);
 		
@@ -476,54 +638,16 @@ int main () {
         //thats probably why there is a camera movement part and a model movement part I think. need to clean thisss
 /*-----------------------------move camera here-------------------------------*/
 		// control keys
-        processs_keyboard(g_window, &camera);
-        
+        processs_keyboard(g_window, &camera,&myMap, &TrajList, trajMatrix);
+        //this should be every key pressed now
         float curDistance = cameraDistance(&camera);
         if(abs(distance-curDistance) > 100){
             //ratio = 1/curDistance;
-            ratio = 1-(round(curDistance)/1000);
-            //int newZoom = (int)floor(5000 * ratio);
-            int newZoom = int(floor((10*ratio) + 9));
-            newZoom > 19 ? newZoom = 19 : newZoom = newZoom; //changing here for a max of 15 until we deal with the height issue
-            newZoom < 0 ? newZoom = 0 : newZoom = newZoom;
-
-            //zoom = (int)floor(5000 * ratio);
-            if(newZoom != zoom){
-                //myMap.GetMapData(-30.057637, -51.171501,newZoom);
-                zoom = newZoom;
-                myMap.curZoom = zoom;
-                Map::zoom = zoom;
-                myMap.FillMapTiles();
-                mapShader.Use();
-                glUniform1f(mapShader("curZoom"), Map::zoom);
-                mapShader.UnUse();
-                TrajParser::ResetScale(startPos.z, startPos.x, &TrajList);
-
-                //really need to put this in a function
-                float posX = Map::long2tilexpx(startPos.x, Map::zoom);
-                float posY = Map::lat2tileypx(startPos.z, Map::zoom);
-
-                float translatedX = (posX *200) -100;
-                float translatedY = (posY *200) -100;
-
-                trajMatrix = glm::mat4(1.0);
-                trajMatrix = glm::translate(trajMatrix, glm::vec3(translatedX,ytrans,translatedY));
-                trajMatrix = glm::rotate<float>(trajMatrix, -M_PI, glm::vec3(1.0,0.0,0.0));
-                Tile::tileScale = Tile::recalculateScale(startPos.z, Map::zoom);
-            }
+            SetZoomLevel(TrajList, curDistance, mapShader, myMap, ratio, startPos, trajMatrix, zoom);
             distance = curDistance;
         }
         
-        if(GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_T)){
-            //xtrans += 0.001;
-            //rotation += 0.001;
-
-        }
-        if(GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_Y)){
-            //xtrans -= 0.001;
-            //rotation -= 0.001;
-        }
-        
+        //should move this stuff into the keyboard function
         if(GLFW_PRESS == glfwGetKey(g_window,GLFW_KEY_1))
         {
             mode = 1;
@@ -549,7 +673,9 @@ int main () {
 
 
         //for testing the position
-        //std::cout << to_string(cameramatrix[3][0]) << " " << to_string(cameramatrix[3][1])<< " " << to_string(cameramatrix[3][2]) << "\n";
+//        std::cout << std::to_string(cameramatrix[3][0]) << " " << std::to_string(cameramatrix[3][1])<< " " << std::to_string(cameramatrix[3][2]) << "\n";
+        //std::cout << camera.cameraPosition.x << " " << camera.cameraPosition.z << " " << camera.cameraPosition.y << "\n";
+        //std::cout << camera.cameraUp.x << " " << camera.cameraUp.y << " " << camera.cameraUp.z << "\n";
         
 //
 //        if (GLFW_PRESS == glfwGetKey (g_window, GLFW_KEY_ESCAPE)) {
