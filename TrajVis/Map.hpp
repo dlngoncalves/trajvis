@@ -92,9 +92,9 @@ struct GeoPosition
 {
 //doing things this way so aggregate initialization is possible (with the constructor it is not)
 //think it might make more sense to use a vec2 for lat lon?
-    std::string latlonString = "0,0";
     float lat = 0.0;
     float lon = 0.0;
+    std::string latlonString = "0,0";
     glm::vec2 latlonVec = glm::vec2(0.0,0.0); //might be too much memory use for this
     
 //    std::string latlon;

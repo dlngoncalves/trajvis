@@ -117,7 +117,8 @@ public:
     
     static std::vector<TrajParser> LoadRow(GLSLShader &shader,int row,std::vector<TrajParser>* baseTrajectories); //we can just load the top or bottom
     static std::vector<TrajParser> LoadColumn(GLSLShader &shader,int column,std::vector<TrajParser>* baseTrajectories);//same with left right
-
+    static std::vector<TrajParser> LoadZoom(GLSLShader &shader,std::vector<TrajParser>* baseTrajectories);
+    
     static void UnloadRow(int row);
     static void UnloadColumn(int column);
     

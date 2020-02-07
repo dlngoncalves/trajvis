@@ -294,7 +294,7 @@ std::vector<TrajParser> TrajParser::LoadRow(GLSLShader &shader, int row, std::ve
     
     
 //    return trajectories;
-    
+    sqlite3_close_v2(db);
     return trajectories;
 }
 
@@ -342,6 +342,62 @@ std::vector<TrajParser> TrajParser::LoadColumn(GLSLShader &shader, int column,st
             std::cout << "ALREADY FOUND : " << trajNames[i] << "\n";
         }
     }
+    sqlite3_close_v2(db);
+    return trajectories;
+}
+
+std::vector<TrajParser> TrajParser::LoadZoom(GLSLShader &shader,std::vector<TrajParser>* baseTrajectories)
+{
+    std::vector<TrajParser> trajectories;
+    //could this be leaking memory?
+    sqlite3 *db;
+    std::string query;
+    char *zErrMsg = 0;
+    
+    //this minLat maxLat stuff will be based on the limits of the map, at the current zoom level, at the current map size
+    float latDelta = 1.0;//this will be more complex later
+    float lonDelta = 1.0;
+    
+    int rc = sqlite3_open("trajectories.db", &db);
+    
+    std::vector<glm::vec2> corners;//2 cornerss
+    GeoPosition location{Map::lat,Map::lon};//dont need to assign the string and vec2 versions, not used here and have default values
+    corners = Map::Corners(location);
+    
+    //this doesnt work if we are between zones
+    std::string minLat = std::to_string(corners[1].x);//should map lat to y and lon to x
+    std::string maxLat = std::to_string(corners[0].x);
+    
+    std::string minLon = std::to_string(corners[0].y);
+    std::string maxLon = std::to_string(corners[1].y);
+    
+    //std::string minLat = std::to_string(location.lat-latDelta);
+    //std::string maxLat = std::to_string(location.lat+latDelta);
+    //std::string minLon = std::to_string(location.lon-lonDelta);
+    //std::string maxLon = std::to_string(location.lon+lonDelta);
+    
+    query = "SELECT DISTINCT TRAJECTORYNAME FROM TRAJSEG WHERE LATITUDE BETWEEN " + minLat + " AND " + maxLat + " AND LONGITUDE BETWEEN "
+    + minLon + " AND " + maxLon + ";";
+    
+    std::vector<std::string> trajNames;
+    //have to remember that sqlite exec will step over all the rows
+    rc = sqlite3_exec(db, query.c_str(),trajListCallback, &trajNames, &zErrMsg);
+    
+    for(int i = 0; i < trajNames.size(); i++){
+        //iterate over the trajectory names and get their segments
+        if(!FoundInVector(baseTrajectories, trajNames[i])){
+            std::cout << "NOT FOUND : " << trajNames[i] << "\n";
+            query = "SELECT * FROM TRAJSEG WHERE TRAJECTORYNAME IS " + trajNames[i] + ";";// ORDER BY DATETIME ASC;";
+            TrajParser curTrajDB(shader);
+            rc = sqlite3_exec(db, query.c_str(),trajSegCallback, &curTrajDB, &zErrMsg);
+            curTrajDB.SetupData();
+            trajectories.push_back(curTrajDB);
+        }
+        else{
+            std::cout << "ALREADY FOUND : " << trajNames[i] << "\n";
+        }
+    }
+    sqlite3_close_v2(db);
     return trajectories;
 }
 
@@ -358,7 +414,7 @@ void TrajParser::UnloadColumn(int column)
 std::vector<TrajParser> TrajParser::LoadLocalTrajectories(GeoPosition location, GLSLShader &shader)
 {
     std::vector<TrajParser> trajectories;
-    
+    //could this be leaking memory?
     sqlite3 *db;
     std::string query;
     char *zErrMsg = 0;
@@ -400,7 +456,7 @@ std::vector<TrajParser> TrajParser::LoadLocalTrajectories(GeoPosition location, 
         curTrajDB.SetupData();
         trajectories.push_back(curTrajDB);
     }
-    
+    sqlite3_close_v2(db);
     return trajectories;
 }
 

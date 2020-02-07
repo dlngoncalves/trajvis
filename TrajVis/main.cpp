@@ -255,13 +255,19 @@ void processs_keyboard(GLFWwindow *window, Camera *cam,Map *map, std::vector<Tra
         trajectories->insert(trajectories->end(),tempVector->begin(),tempVector->end() );
     }
     
-    delete tempVector;
-    
-    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_Z))
+    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_Z)){
         ZoomIn(cam);
+        *tempVector = TrajParser::LoadZoom(shader,trajectories);
+        trajectories->insert(trajectories->end(),tempVector->begin(),tempVector->end() );
+    }
     
-    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_X))
+    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_X)){
         ZoomOut(cam);
+        *tempVector = TrajParser::LoadZoom(shader,trajectories);
+        trajectories->insert(trajectories->end(),tempVector->begin(),tempVector->end() );
+    }
+    
+    delete tempVector;
 }
 
 float cameraDistance(Camera *cam)
