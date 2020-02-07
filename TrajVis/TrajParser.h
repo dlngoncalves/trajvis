@@ -105,8 +105,6 @@ public:
     
     static void UpdateTrajMatrix();
     
-        
-    
     
     static glm::vec3 basePosition;
     
@@ -116,6 +114,12 @@ public:
     //should it be a location string or a location structure?
     static std::vector<TrajParser> LoadLocalTrajectories(std::string location, GLSLShader &shader);
     static std::vector<TrajParser> LoadLocalTrajectories(GeoPosition location, GLSLShader &shader);
+    
+    static std::vector<TrajParser> LoadRow(GLSLShader &shader,int row,std::vector<TrajParser>* baseTrajectories); //we can just load the top or bottom
+    static std::vector<TrajParser> LoadColumn(GLSLShader &shader,int column,std::vector<TrajParser>* baseTrajectories);//same with left right
+
+    static void UnloadRow(int row);
+    static void UnloadColumn(int column);
     
     //regarding those two vectors - first stores positions already converted to xyz and second stores lat-lon info
     std::vector<glm::vec3> positions; //moving this here for easier access
@@ -144,6 +148,19 @@ public:
     GLuint vertexArrayObject;
     GLuint speedArrayObject;
     void SetupData();
+    
+    //we had to create a copy operator because the shader member is a reference
+    ///TrajParser() =default;
+    //TrajParser(const TrajParser&) =delete;
+    //dont we have to copy everything?
+    TrajParser& operator=(const TrajParser& arg)
+    {
+        myShader = arg.myShader;
+        
+        return *this;
+    }
+//    TrajParser& operator=(const TrajParser&) = default;
+//    TrajParser& operator=(const TrajParser&) =delete;
     
     virtual void Render();
 };

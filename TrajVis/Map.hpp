@@ -205,6 +205,8 @@ public:
     static double tiley2lat(int y, int z);
     
     static std::vector<glm::vec2> Corners(GeoPosition position);
+    static std::vector<glm::vec2> RowCorners(int row);
+    static std::vector<glm::vec2> ColumnCorners(int column);
     
     void GetTile(int x, int y, int zoom);
     
