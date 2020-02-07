@@ -207,14 +207,14 @@ std::vector<TrajParser> TrajParser::LoadTrajDescription(std::string file, GLSLSh
 //    return
 //}
 
-static bool FoundInVector(const std::vector<TrajParser> &trajectories, const std::string trajName )
+static bool FoundInVector(const std::vector<TrajParser> *trajectories, const std::string trajName )
 {
     //TrajParser test;
     
-    std::vector<TrajParser>::iterator it; std::find_if(trajectories.begin(), trajectories.end(),
+    std::vector<TrajParser>::iterator it; std::find_if(trajectories->begin(), trajectories->end(),
                  [trajName](const TrajParser &curTraj) -> bool {return curTraj.segList[0].timeStamp == trajName;});
     
-    if(it == trajectories.end())
+    if(it == trajectories->end())
         return false;
     else
         return true;
@@ -278,7 +278,7 @@ std::vector<TrajParser> TrajParser::LoadRow(GLSLShader &shader, int row, std::ve
     
     for(int i = 0; i < trajNames.size(); i++){
         //iterate over the trajectory names and get their segments
-        if(!FoundInVector(*baseTrajectories, trajNames[i])){
+        if(!FoundInVector(baseTrajectories, trajNames[i])){
             std::cout << "NOT FOUND : " << trajNames[i] << "\n";
             query = "SELECT * FROM TRAJSEG WHERE TRAJECTORYNAME IS " + trajNames[i] + ";";// ORDER BY DATETIME ASC;";
             TrajParser curTrajDB(shader);
@@ -330,7 +330,7 @@ std::vector<TrajParser> TrajParser::LoadColumn(GLSLShader &shader, int column,st
     
     for(int i = 0; i < trajNames.size(); i++){
         //iterate over the trajectory names and get their segments
-        if(!FoundInVector(trajectories, trajNames[i])){
+        if(!FoundInVector(baseTrajectories, trajNames[i])){
             std::cout << "NOT FOUND : " << trajNames[i] << "\n";
             query = "SELECT * FROM TRAJSEG WHERE TRAJECTORYNAME IS " + trajNames[i] + ";";// ORDER BY DATETIME ASC;";
             TrajParser curTrajDB(shader);

@@ -223,37 +223,39 @@ void processs_keyboard(GLFWwindow *window, Camera *cam,Map *map, std::vector<Tra
     
     //glm::vec3 right = glm::normalize(glm::cross(cam->cameraFront, cam->cameraUp));
     //keeping old camera movement commented out - also added the direction vectors, so that should be a bit faster
-    std::vector<TrajParser> tempVector;
+    std::vector<TrajParser> * tempVector = new std::vector<TrajParser>;
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_W)){
         //cam->cameraPosition += cam->cameraSpeed * cam->cameraFront;
         //cam->cameraPosition += directionVertical * cam->cameraSpeed;
         Pan(Direction::North, cam,map, trajectories,trajMatrix);
-        tempVector = TrajParser::LoadRow(shader,1,trajectories);
-        trajectories->insert(trajectories->end(),tempVector.begin(),tempVector.end() );
+        *tempVector = TrajParser::LoadRow(shader,1,trajectories);
+        trajectories->insert(trajectories->end(),tempVector->begin(),tempVector->end() );
     }
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_S)){
         //cam->cameraPosition -= cam->cameraSpeed * cam->cameraFront;
         //cam->cameraPosition -= directionVertical * cam->cameraSpeed;
         Pan(Direction::South, cam,map, trajectories,trajMatrix);
-        tempVector = TrajParser::LoadRow(shader,-1,trajectories);
-        trajectories->insert(trajectories->end(),tempVector.begin(),tempVector.end() );
+        *tempVector = TrajParser::LoadRow(shader,-1,trajectories);
+        trajectories->insert(trajectories->end(),tempVector->begin(),tempVector->end() );
     }
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_A)){
         //cam->cameraPosition -= directionLateral * cam->cameraSpeed;
         Pan(Direction::West, cam,map, trajectories,trajMatrix);
-        tempVector = TrajParser::LoadColumn(shader,-1,trajectories);
-        trajectories->insert(trajectories->end(),tempVector.begin(),tempVector.end() );
+        *tempVector = TrajParser::LoadColumn(shader,-1,trajectories);
+        trajectories->insert(trajectories->end(),tempVector->begin(),tempVector->end() );
     }
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_D)){
         //cam->cameraPosition += directionLateral * cam->cameraSpeed;
         Pan(Direction::East, cam,map, trajectories,trajMatrix);
-        tempVector = TrajParser::LoadColumn(shader,1,trajectories);
-        trajectories->insert(trajectories->end(),tempVector.begin(),tempVector.end() );
+        *tempVector = TrajParser::LoadColumn(shader,1,trajectories);
+        trajectories->insert(trajectories->end(),tempVector->begin(),tempVector->end() );
     }
+    
+    delete tempVector;
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_Z))
         ZoomIn(cam);
