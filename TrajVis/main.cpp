@@ -9,7 +9,9 @@
 	#define GLEW_STATIC
     #include <GL/glew.h> // include GLEW and new version of GL on Windows
 #endif
-
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
 #include "gl_utils.h"
 #include <GLFW/glfw3.h> // GLFW helper library
 #include <stdio.h>
@@ -383,6 +385,17 @@ int main () {
     glfwSetCursorPosCallback(g_window, mouse_callback);
     glfwSetInputMode(g_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO &io = ImGui::GetIO(); (void)io;
+    
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(g_window, true);
+    ImGui_ImplOpenGL3_Init();
+    
+    bool show_demo_window = true;
+    bool show_another_window = false;
+    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
     
     //need to change here to get all trajectory files on dir -- but will have to figure something to get files on demand
     
@@ -561,6 +574,15 @@ int main () {
     
 	while (!glfwWindowShouldClose (g_window)) {
 		
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+        
+        
+        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+        if (show_demo_window)
+            ImGui::ShowDemoWindow(&show_demo_window);
+        
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         glEnable(GL_DEPTH_TEST);
