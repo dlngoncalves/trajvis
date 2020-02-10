@@ -1,13 +1,16 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#define GL_SILENCE_DEPRECATION
+//now also using glew on mac, but I'm not sure about declaring it static? will clean up this later
 #ifdef __APPLE__
-    #include <OpenGL/gl3.h>
-    #include <OpenGL/gl3ext.h>
-#else
-	#define GLEW_STATIC
-    #include <GL/glew.h> // include GLEW and new version of GL on Windows
+    #define GL_SILENCE_DEPRECATION
+    //#include <OpenGL/gl3.h>
+    //#include <OpenGL/gl3ext.h>
+    #define GLEW_STATIC
+    #include <GL/glew.h>
+#else// include static GLEW and new version of GL on Windows
+    #define GLEW_STATIC
+    #include <GL/glew.h>
 #endif
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -21,7 +24,6 @@
 #include <stdarg.h>
 #define _USE_MATH_DEFINES
 #include <math.h>
-//#include "objLoader.h"
 #include "Camera.h"
 #include "TrajParser.h"
 #include "Weather.h"
@@ -34,7 +36,6 @@
 #include <string>
 #include <curl/curl.h>
 #include <sqlite3.h>
-//#include <Map.hpp>
 #include "Map.hpp"
 
 #define GL_LOG_FILE "gl.log"
@@ -382,8 +383,9 @@ int main () {
     mapShader.AddUniform("curZoom");
     mapShader.UnUse();
     
+    glewInit();
     glfwSetCursorPosCallback(g_window, mouse_callback);
-    glfwSetInputMode(g_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    //glfwSetInputMode(g_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -391,7 +393,7 @@ int main () {
     
     ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(g_window, true);
-    ImGui_ImplOpenGL3_Init();
+    ImGui_ImplOpenGL3_Init("#version 410");
     
     bool show_demo_window = true;
     bool show_another_window = false;
@@ -572,16 +574,16 @@ int main () {
     
     float rotation = 0.0;
     
+    //imgui variables
+    static bool picker = false;
+    
 	while (!glfwWindowShouldClose (g_window)) {
 		
+        //start imgui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        
-        
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        if (show_demo_window)
-            ImGui::ShowDemoWindow(&show_demo_window);
+    
         
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
@@ -675,10 +677,25 @@ int main () {
             //glDrawArrays (GL_POINTS, 0, (int)curTraj.positions.size());
         }
         
-
-
+        static float color[4] = { 1.0f,1.0f,1.0f,1.0f };
+        ImGui::Begin("Test");
+        
+        if(ImGui::Button("Show color picker")){
+            picker = !picker;
+            std::cout << color[0] << " " << color[1] << " " << color[2] << " " << color[3] << "\n";
+        }
+        
+        if(picker){
+            ImGui::ColorEdit3("Select Color", color);
+        }
+        
+        ImGui::End();
+        
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		// update other events like input handling 
 		glfwPollEvents ();
+
 		
         //all of this movement code comes from the old old old "Camera Virtual + GLM e Model Matrix" camera project I think?
         //thats probably why there is a camera movement part and a model movement part I think. need to clean thisss
