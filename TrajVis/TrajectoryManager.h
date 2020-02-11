@@ -12,11 +12,11 @@
 #include <stdio.h>
 
 //created this class because I wanted to migrate some stuff away from the trajparser class but I think I'm just gonna refactor that one
-class Trajectory {
+class TrajectoryManager {
     
     
 public:
-    Trajectory();
-    ~Trajectory();
+    TrajectoryManager();
+    ~TrajectoryManager();
 };
 #endif /* Trajectory_h */

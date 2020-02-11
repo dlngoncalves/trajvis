@@ -15,7 +15,7 @@
 #include <vector>
 #include <math.h>
 #include <glm/glm.hpp>
-#include "Trajectory.h"
+#include "TrajectoryManager.h"
 #include "Weather.h"
 #include "GLSLShader.h"
 #include "Map.hpp"
