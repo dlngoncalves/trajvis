@@ -273,6 +273,12 @@ void processs_keyboard(GLFWwindow *window, Camera *cam,Map *map, std::vector<Tra
     delete tempVector;
 }
 
+static void FilterBySelection(std::string attribute,std::string minValue,std::string maxValue,GLSLShader &shader,std::vector<TrajParser> *trajectories)
+{
+    trajectories->clear();
+    *trajectories = TrajParser::FilterTrajectories(attribute, minValue, maxValue, shader);
+}
+
 float cameraDistance(Camera *cam)
 {
     //just vertical distance for zoom
@@ -678,17 +684,48 @@ int main () {
         }
         
         static float color[4] = { 1.0f,1.0f,1.0f,1.0f };
-        ImGui::Begin("Test");
+        bool my_tool_active;
+//        ImGui::Begin("Test");
+        ImGui::Begin("Filter Attributes", &my_tool_active, ImGuiWindowFlags_MenuBar);
+
+//        if(ImGui::Button("Show color picker")){
+//            picker = !picker;
+//            std::cout << color[0] << " " << color[1] << " " << color[2] << " " << color[3] << "\n";
+//        }
+//
+//        if(picker){
+//            ImGui::ColorEdit3("Select Color", color);
+//        }
+        int value;
         
-        if(ImGui::Button("Show color picker")){
-            picker = !picker;
-            std::cout << color[0] << " " << color[1] << " " << color[2] << " " << color[3] << "\n";
+        ImGui::RadioButton("Temperature", &value, 11);
+        char min[3];
+        ImGui::InputText("Min Value", min, IM_ARRAYSIZE(min));
+        char max[3];
+        ImGui::InputText("Max Value", max, IM_ARRAYSIZE(max));
+
+
+        if(ImGui::Button("Filter")){
+            FilterBySelection("TEMPERATURE", min, max, trajectoryShader, &TrajList);
         }
-        
-        if(picker){
-            ImGui::ColorEdit3("Select Color", color);
-        }
-        
+        //keeping this here just for
+//        char buf[200];
+//        ImGui::InputText("Type query", buf, IM_ARRAYSIZE(buf));
+//        
+//        std::cout << buf << "\n";
+
+//        if (ImGui::BeginMenuBar())
+//        {
+//            if (ImGui::BeginMenu("File"))
+//            {
+//                if (ImGui::MenuItem("Open..", "Ctrl+O")) { /* Do stuff */ }
+//                if (ImGui::MenuItem("Save", "Ctrl+S"))   { /* Do stuff */ }
+//                //if (ImGui::MenuItem("Close", "Ctrl+W"))  { my_tool_active = false; }
+//                ImGui::EndMenu();
+//            }
+//            ImGui::EndMenuBar();
+//        }
+
         ImGui::End();
         
         ImGui::Render();

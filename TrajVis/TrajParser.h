@@ -119,6 +119,9 @@ public:
     static std::vector<TrajParser> LoadColumn(GLSLShader &shader,int column,std::vector<TrajParser>* baseTrajectories);//same with left right
     static std::vector<TrajParser> LoadZoom(GLSLShader &shader,std::vector<TrajParser>* baseTrajectories);
     
+    //adding all these static methods made me realize we need a trajmanager
+    static std::vector<TrajParser> FilterTrajectories(std::string attribute, std::string minValue, std::string maxValue,GLSLShader &shader);
+    
     static void UnloadRow(int row);
     static void UnloadColumn(int column);
     

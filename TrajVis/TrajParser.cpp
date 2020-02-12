@@ -935,6 +935,50 @@ glm::mat4 TrajParser::SetTrajMatrix(float lat,float lon)
     return trajMatrix;
 }
 
+std::vector<TrajParser> TrajParser::FilterTrajectories(std::string attribute, std::string minValue, std::string maxValue,GLSLShader &shader)
+{
+    std::vector<TrajParser> trajectories;
+    sqlite3 *db;
+    std::string query;
+    char *zErrMsg = 0;
+    
+    //this minLat maxLat stuff will be based on the limits of the map, at the current zoom level, at the current map size
+    float latDelta = 1.0;//this will be more complex later
+    float lonDelta = 1.0;
+    
+    int rc = sqlite3_open("trajectories.db", &db);
+    
+    std::vector<glm::vec2> corners;//2 cornerss
+    GeoPosition location{Map::lat,Map::lon};
+    corners = Map::Corners(location);
+    
+    //this doesnt work if we are between zones
+    std::string minLat = std::to_string(corners[1].x);//should map lat to y and lon to x
+    std::string maxLat = std::to_string(corners[0].x);
+    
+    std::string minLon = std::to_string(corners[0].y);
+    std::string maxLon = std::to_string(corners[1].y);
+    
+    
+    query = "SELECT DISTINCT TRAJECTORYNAME FROM TRAJSEG WHERE LATITUDE BETWEEN " + minLat + " AND " + maxLat + " AND LONGITUDE BETWEEN "
+    + minLon + " AND " + maxLon + + " AND " + attribute + " BETWEEN " + minValue + " AND " + maxValue + ";";
+    
+    std::vector<std::string> trajNames;
+    //have to remember that sqlite exec will step over all the rows
+    rc = sqlite3_exec(db, query.c_str(),trajListCallback, &trajNames, &zErrMsg);
+    
+    for(int i = 0; i < trajNames.size(); i++){
+        //iterate over the trajectory names and get their segments
+        query = "SELECT * FROM TRAJSEG WHERE TRAJECTORYNAME IS " + trajNames[i] + ";";// ORDER BY DATETIME ASC;";
+        TrajParser curTrajDB(shader);
+        rc = sqlite3_exec(db, query.c_str(),trajSegCallback, &curTrajDB, &zErrMsg);
+        curTrajDB.SetupData();
+        trajectories.push_back(curTrajDB);
+    }
+    sqlite3_close_v2(db);
+    return trajectories;
+}
+
 //just playing around with some stuff
 void TrajParser::Render()
 {
