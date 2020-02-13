@@ -285,6 +285,12 @@ static void FilterByTime(std::string minValue,std::string maxValue,GLSLShader &s
     *trajectories = TrajParser::FilterByTime(minValue, maxValue, shader);
 }
 
+static void FilterByDate(std::string minValue,std::string maxValue,GLSLShader &shader,std::vector<TrajParser> *trajectories)
+{
+    trajectories->clear();
+    *trajectories = TrajParser::FilterByDate(minValue, maxValue, shader);
+}
+
 float cameraDistance(Camera *cam)
 {
     //just vertical distance for zoom
@@ -747,8 +753,13 @@ int main () {
             if(selected == 3){
                 static char min[11] = "2000-01-01";
                 static char max[11] = "2000-01-01";
+                
                 ImGui::InputText("Start Date", min, IM_ARRAYSIZE(min));
                 ImGui::InputText("End Date", max, IM_ARRAYSIZE(max));
+                
+                if(ImGui::Button("Filter")){
+                    FilterByDate(min, max, trajectoryShader, &TrajList);
+                }
             }
         }
         
