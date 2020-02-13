@@ -279,6 +279,12 @@ static void FilterBySelection(std::string attribute,std::string minValue,std::st
     *trajectories = TrajParser::FilterTrajectories(attribute, minValue, maxValue, shader);
 }
 
+static void FilterByTime(std::string minValue,std::string maxValue,GLSLShader &shader,std::vector<TrajParser> *trajectories)
+{
+    trajectories->clear();
+    *trajectories = TrajParser::FilterByTime(minValue, maxValue, shader);
+}
+
 float cameraDistance(Camera *cam)
 {
     //just vertical distance for zoom
@@ -696,18 +702,57 @@ int main () {
 //        if(picker){
 //            ImGui::ColorEdit3("Select Color", color);
 //        }
-        int value;
+        static int selected = 0;
         
-        ImGui::RadioButton("Temperature", &value, 11);
-        char min[3];
-        ImGui::InputText("Min Value", min, IM_ARRAYSIZE(min));
-        char max[3];
-        ImGui::InputText("Max Value", max, IM_ARRAYSIZE(max));
-
-
-        if(ImGui::Button("Filter")){
-            FilterBySelection("TEMPERATURE", min, max, trajectoryShader, &TrajList);
+        ImGui::RadioButton("Temperature", &selected, 0); ImGui::SameLine();
+        ImGui::RadioButton("Speed", &selected, 1); ImGui::SameLine();
+        ImGui::RadioButton("Time", &selected, 2); ImGui::SameLine();
+        ImGui::RadioButton("Date", &selected, 3);
+        
+        
+        if(selected == 0 || selected == 1){
+            static char min[4] = "0";
+            static char max[4] = "0";
+            ImGui::InputText("Min Value", min, IM_ARRAYSIZE(min));
+            ImGui::InputText("Max Value", max, IM_ARRAYSIZE(max));
+            
+            if(ImGui::Button("Filter")){
+                std::string attribute;
+                switch (selected) {
+                    case 0:
+                        attribute = "TEMPERATURE";
+                        break;
+                    case 1:
+                        attribute = "AVERAGESPEED";
+                        break;
+                    default:
+                        break;
+                }
+                FilterBySelection("TEMPERATURE", min, max, trajectoryShader, &TrajList);
+            }
         }
+        else{
+            //2009-10-02T03:24:28Z datetime format
+
+            if(selected == 2){
+                static char min[4] = "0";
+                static char max[4] = "0";
+                
+                ImGui::InputText("Start Time", min, IM_ARRAYSIZE(min));
+                ImGui::InputText("End Time", max, IM_ARRAYSIZE(max));
+                if(ImGui::Button("Filter")){
+                    FilterByTime(min, max, trajectoryShader, &TrajList);
+                }
+            }
+            if(selected == 3){
+                static char min[11] = "2000-01-01";
+                static char max[11] = "2000-01-01";
+                ImGui::InputText("Start Date", min, IM_ARRAYSIZE(min));
+                ImGui::InputText("End Date", max, IM_ARRAYSIZE(max));
+            }
+        }
+        
+
         //keeping this here just for
 //        char buf[200];
 //        ImGui::InputText("Type query", buf, IM_ARRAYSIZE(buf));

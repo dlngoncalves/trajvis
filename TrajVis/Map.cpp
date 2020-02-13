@@ -487,12 +487,12 @@ GeoPosition Map::GetLocation(bool mockData)
     }
     else{
         //china - not beijing
-        latitude = 40.0f;
-        longitude = 115.0f;
+//        latitude = 40.0f;
+//        longitude = 115.0f;
         
 //        barcelona-madrid
-//      latitude = 30.0f;
-//      longitude = 0.0f;
+      latitude = 30.0f;
+      longitude = 0.0f;
         
         //nice
 //        latitude = 43.5f;

@@ -121,6 +121,7 @@ public:
     
     //adding all these static methods made me realize we need a trajmanager
     static std::vector<TrajParser> FilterTrajectories(std::string attribute, std::string minValue, std::string maxValue,GLSLShader &shader);
+    static std::vector<TrajParser> FilterByTime(std::string minValue, std::string maxValue,GLSLShader &shader);
     
     static void UnloadRow(int row);
     static void UnloadColumn(int column);
