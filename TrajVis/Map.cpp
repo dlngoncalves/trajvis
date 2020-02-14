@@ -491,12 +491,12 @@ GeoPosition Map::GetLocation(bool mockData)
 //        longitude = 115.0f;
         
 //        barcelona-madrid
-//      latitude = 30.0f;
-//      longitude = 0.0f;
+      latitude = 30.0f;
+      longitude = 0.0f;
         
         //nice
-        latitude = 43.5f;
-        longitude = 7.0f;
+//        latitude = 43.5f;
+//        longitude = 7.0f;
         
     }
     

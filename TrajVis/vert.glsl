@@ -21,6 +21,9 @@ out vec4 screenPosition;
 out vec3 position_eye;
 //out vec3 vertColorTemp;
 out vec3 vertColorTemp_g;
+
+out vec3 minMaxCurrent_g;
+
 out float speed_g;
 //, normal_eye; //not using normals for anything now
 
@@ -81,6 +84,8 @@ void main () {
         vec3 intensityColor = vec3(timePercentage,timePercentage,timePercentage);
         vertColorTemp_g = mix(minColor,maxColor,intensityColor);
     }
+    
+    minMaxCurrent_g = minMaxCurrent;
     
     speed_g = speed;
     screenPosition = projection_mat * view_mat * model_mat * vec4(vertex_position,1.0);

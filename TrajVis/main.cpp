@@ -388,6 +388,8 @@ int main () {
     trajectoryShader.AddUniform("minColor");
     trajectoryShader.AddUniform("maxColor");
     trajectoryShader.AddUniform("time");
+    trajectoryShader.AddUniform("minWidth");
+    trajectoryShader.AddUniform("maxWidth");
     trajectoryShader.UnUse();
     
     GLSLShader mapShader;
@@ -456,7 +458,7 @@ int main () {
     //old way still availiable
     //std::vector<TrajParser> TrajList = TrajParser::LoadTrajDescription("trajectories/trajectories3.txt",trajectoryShader);
     
-    int mode = 1;
+    int mode = 0;
     
 //    TrajList.push_back(trajetory);
 //    TrajList.push_back(trajetory2);
@@ -606,7 +608,10 @@ int main () {
 
     static float minColor[3] = { 0.0f,0.0f,0.0f};
     static float maxColor[3] = { 1.0f,1.0f,1.0f};
-
+    
+    static float minWidth = 1;
+    static float maxWidth = 5;
+    
 	while (!glfwWindowShouldClose (g_window)) {
 		
         //start imgui frame
@@ -698,7 +703,10 @@ int main () {
         //trajMatrix = glm::translate(trajMatrix, glm::vec3(xtrans,0.0,ytrans));
         //trajMatrix = glm::rotate(trajMatrix, rotation, glm::vec3(0.0,1.0,0.0));
         glUniformMatrix4fv(trajectoryShader("model_mat"), 1, GL_FALSE, glm::value_ptr(trajMatrix));
-        glUniform1i(trajectoryShader("mode"), mode);
+        
+        //fuuuuck
+//        glUniform1i(trajectoryShader("mode"), mode);
+        
         //shouldn this be an auto &?
         for(auto curTraj : TrajList){
             glUniform1f(trajectoryShader("averageSpeed"), curTraj.averageSpeed);
@@ -706,6 +714,8 @@ int main () {
             glUniform3fv(trajectoryShader("minColor"),1,minColor);
             glUniform3fv(trajectoryShader("maxColor"),1,maxColor);
             glUniform1i(trajectoryShader("time"),std::stoi(curTraj.segList[0].timeStamp.substr(5,2)));//this needs to be mapped to a buffer
+            glUniform1f(trajectoryShader("minWidth"),minWidth);
+            glUniform1f(trajectoryShader("maxWidth"),maxWidth);
             glBindVertexArray (curTraj.vertexArrayObject);
             glDrawArrays (GL_LINE_STRIP_ADJACENCY, 0,(int)curTraj.positions.size());
             //glDrawArrays (GL_POINTS, 0, (int)curTraj.positions.size());
@@ -801,7 +811,7 @@ int main () {
         ImGui::End();
         
         ImGui::Begin("Map Attributes");
-        
+
         const char* items[] = { "Temperature", "Speed", "Time of Day"};//, "CCCC", "DDDD", "EEEE", "FFFF", "GGGG", "HHHH", "IIII", "JJJJ", "KKKK", "LLLLLLL", "MMMM", "OOOOOOO" };
 
         //if temperature then only can change the min max values
@@ -822,7 +832,7 @@ int main () {
                     }
                     if (is_selected){
                         ImGui::SetItemDefaultFocus();   // Set the initial focus when opening the combo (scrolling + for keyboard navigation support in the upcoming navigation branch)
-                        
+
                     }
                 }
                 ImGui::EndCombo();
@@ -834,7 +844,7 @@ int main () {
         if(strcmp(item_current, "Speed") == 0 ){//in this case we dont need
             ImGui::SliderFloat("Min Speed", &minValueColor, 0, 100);
             ImGui::SliderFloat("Max Speed", &maxValueColor, 1, 100);
-            
+
             ImGui::ColorEdit3("Min Color", minColor);
             ImGui::ColorEdit3("Max Color", maxColor);
         }
@@ -847,7 +857,61 @@ int main () {
             ImGui::ColorEdit3("Min Color", minColor);
             ImGui::ColorEdit3("Max Color", maxColor);
         }
-
+        ImGui::EndGroup();
+        ImGui::End();
+        
+        //start another group for shape
+        
+        ImGui::Begin("Map Attributes");
+        const char* itemsShape[] = { "Temperature", "Speed", "Time of Day"};//, "CCCC", "DDDD", "EEEE", "FFFF", "GGGG", "HHHH", "IIII", "JJJJ", "KKKK", "LLLLLLL", "MMMM", "OOOOOOO" };
+        
+        //if temperature then only can change the min max values
+        //speed both the values and the range of colors
+        //time of day only the range of colors
+        static const char* item_current_shape = itemsShape[0];
+        static ImGuiComboFlags flagsShape = 0;
+        ImGui::BeginGroup();
+        ImGui::Text("Shape");
+        if (ImGui::BeginCombo("Attribute2", item_current_shape, flagsShape)){ // The second parameter is the label previewed before opening the combo.
+            for (int n = 0; n < IM_ARRAYSIZE(itemsShape); n++){
+                bool is_selected_shape = (item_current_shape == itemsShape[n]);
+                if (ImGui::Selectable(itemsShape[n], is_selected_shape)){
+                    item_current_shape = itemsShape[n];
+                    //std::cout << item_current;
+                    //we are setting the uniform directly here, but should probably do it in a specific place
+                    glUniform1i(trajectoryShader("mode"),n+1);
+                }
+                if (is_selected_shape){
+                    ImGui::SetItemDefaultFocus();   // Set the initial focus when opening the combo (scrolling + for keyboard navigation support in the upcoming navigation branch)
+                    
+                }
+            }
+            ImGui::EndCombo();
+        }
+        if(strcmp(item_current_shape, "Temperature") == 0 ){//in this case we dont need
+            ImGui::SliderFloat("Min width", &minWidth, 1, 10);
+            ImGui::SliderFloat("Max width", &maxWidth, 2, 10);
+            
+            ImGui::SliderFloat("Start value", &minValueColor, -50, 50);
+            ImGui::SliderFloat("End value", &maxValueColor, -50, 50);
+        }
+        if(strcmp(item_current_shape, "Speed") == 0 ){
+            ImGui::SliderFloat("Min width", &minWidth, 1, 10);
+            ImGui::SliderFloat("Max width", &maxWidth, 2, 10);
+            
+            ImGui::SliderFloat("Min Speed", &minValueColor, 0, 100);
+            ImGui::SliderFloat("Max Speed", &maxValueColor, 1, 100);
+        }
+        if(strcmp(item_current_shape, "Time of Day") == 0 ){//in this case we dont need
+            //ImGui::SliderFloat("Min Speed", &minValueColor, 0, 100);
+            //ImGui::SliderFloat("Max Speed", &maxValueColor, 1, 100);
+            ImGui::SliderFloat("Start Time", &minValueColor, 0, 23);
+            ImGui::SliderFloat("End Time", &maxValueColor, 0, 23);
+            
+            ImGui::ColorEdit3("Min Color", minColor);
+            ImGui::ColorEdit3("Max Color", maxColor);
+        }
+        
         //ImGui::SameLine();
 //        static float minColor[3] = { 0.0f,0.0f,0.0f};
 //        static float maxColor[3] = { 1.0f,1.0f,1.0f};
@@ -916,15 +980,16 @@ int main () {
         }
         
         //should move this stuff into the keyboard function
-        if(GLFW_PRESS == glfwGetKey(g_window,GLFW_KEY_1))
-        {
-            mode = 1;
-        }
-
-        if(GLFW_PRESS == glfwGetKey(g_window,GLFW_KEY_2))
-        {
-            mode = 2;
-        }
+        //changing this mapping to the gui
+//        if(GLFW_PRESS == glfwGetKey(g_window,GLFW_KEY_1))
+//        {
+//            mode = 1;
+//        }
+//
+//        if(GLFW_PRESS == glfwGetKey(g_window,GLFW_KEY_2))
+//        {
+//            mode = 2;
+//        }
         
         if(GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_G)){
             ytrans += 10.0;
