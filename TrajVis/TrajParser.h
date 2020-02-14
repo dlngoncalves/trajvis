@@ -124,6 +124,8 @@ public:
     static std::vector<TrajParser> FilterByTime(std::string minValue, std::string maxValue,GLSLShader &shader);
     static std::vector<TrajParser> FilterByDate(std::string minValue, std::string maxValue,GLSLShader &shader);
     
+    static void MapAttribute(std::string minValue, std::string maxValue,GLSLShader &shader);
+    
     static void UnloadRow(int row);
     static void UnloadColumn(int column);
     

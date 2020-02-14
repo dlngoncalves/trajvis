@@ -47,6 +47,7 @@ void main() {
     
     vec3 color;
     
+    //here is where we will have to change the thickness mapping
     if(mode == 1){
         color = vertColorTemp_g[1];
         thickness1 = 1;

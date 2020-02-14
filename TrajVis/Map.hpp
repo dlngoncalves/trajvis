@@ -15,7 +15,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 
-#define TILEMAP_SIZE 7
+#define TILEMAP_SIZE 5
 //class or struct?
 
 enum class Direction{

@@ -383,6 +383,11 @@ int main () {
     trajectoryShader.AddUniform("averageSpeed");
     trajectoryShader.AddUniform("mode");
     trajectoryShader.AddUniform("windowSize");
+    trajectoryShader.AddUniform("minMaxCurrent");
+    trajectoryShader.AddUniform("currentSelection");
+    trajectoryShader.AddUniform("minColor");
+    trajectoryShader.AddUniform("maxColor");
+    trajectoryShader.AddUniform("time");
     trajectoryShader.UnUse();
     
     GLSLShader mapShader;
@@ -491,6 +496,8 @@ int main () {
     glUniformMatrix4fv(trajectoryShader("projection_mat"), 1, GL_FALSE, glm::value_ptr(perspectiveMatrix));
     glUniform1i(trajectoryShader("mode"), mode);
     glUniform2fv(trajectoryShader("windowSize"), 1, glm::value_ptr(glm::vec2(g_gl_width,g_gl_height)));
+    glUniform1i(trajectoryShader("currentSelection"),0);
+    //glUniform3fv(trajectoryShader("minMaxCurrent"), 1, glm::value_ptr(glm::vec3(-50,50,TrajList[0].segList[0].segWeather.temperature)));
     
     mapShader.Use();
     glUniformMatrix4fv(mapShader("projection_mat"), 1, GL_FALSE, glm::value_ptr(perspectiveMatrix));
@@ -594,7 +601,12 @@ int main () {
     
     //imgui variables
     static bool picker = false;
-    
+    static float minValueColor = -50;
+    static float maxValueColor = 50;
+
+    static float minColor[3] = { 0.0f,0.0f,0.0f};
+    static float maxColor[3] = { 1.0f,1.0f,1.0f};
+
 	while (!glfwWindowShouldClose (g_window)) {
 		
         //start imgui frame
@@ -690,12 +702,16 @@ int main () {
         //shouldn this be an auto &?
         for(auto curTraj : TrajList){
             glUniform1f(trajectoryShader("averageSpeed"), curTraj.averageSpeed);
+            glUniform3fv(trajectoryShader("minMaxCurrent"), 1, glm::value_ptr(glm::vec3(minValueColor,maxValueColor,curTraj.segList[0].segWeather.temperature)));
+            glUniform3fv(trajectoryShader("minColor"),1,minColor);
+            glUniform3fv(trajectoryShader("maxColor"),1,maxColor);
+            glUniform1i(trajectoryShader("time"),std::stoi(curTraj.segList[0].timeStamp.substr(5,2)));//this needs to be mapped to a buffer
             glBindVertexArray (curTraj.vertexArrayObject);
             glDrawArrays (GL_LINE_STRIP_ADJACENCY, 0,(int)curTraj.positions.size());
             //glDrawArrays (GL_POINTS, 0, (int)curTraj.positions.size());
         }
         
-        static float color[4] = { 1.0f,1.0f,1.0f,1.0f };
+        
         bool my_tool_active;
 //        ImGui::Begin("Test");
         ImGui::Begin("Filter Attributes", &my_tool_active, ImGuiWindowFlags_MenuBar);
@@ -715,7 +731,7 @@ int main () {
         ImGui::RadioButton("Time", &selected, 2); ImGui::SameLine();
         ImGui::RadioButton("Date", &selected, 3);
         
-        
+
         if(selected == 0 || selected == 1){
             static char min[4] = "0";
             static char max[4] = "0";
@@ -782,6 +798,102 @@ int main () {
 //            ImGui::EndMenuBar();
 //        }
 
+        ImGui::End();
+        
+        ImGui::Begin("Map Attributes");
+        
+        const char* items[] = { "Temperature", "Speed", "Time of Day"};//, "CCCC", "DDDD", "EEEE", "FFFF", "GGGG", "HHHH", "IIII", "JJJJ", "KKKK", "LLLLLLL", "MMMM", "OOOOOOO" };
+
+        //if temperature then only can change the min max values
+        //speed both the values and the range of colors
+        //time of day only the range of colors
+        static const char* item_current = items[0];
+        static ImGuiComboFlags flags = 0;
+        ImGui::BeginGroup();
+            ImGui::Text("Color");
+            if (ImGui::BeginCombo("Attribute", item_current, flags)){ // The second parameter is the label previewed before opening the combo.
+                for (int n = 0; n < IM_ARRAYSIZE(items); n++){
+                    bool is_selected = (item_current == items[n]);
+                    if (ImGui::Selectable(items[n], is_selected)){
+                        item_current = items[n];
+                        std::cout << item_current;
+                        //we are setting the uniform directly here, but should probably do it in a specific place
+                        glUniform1i(trajectoryShader("currentSelection"),n);
+                    }
+                    if (is_selected){
+                        ImGui::SetItemDefaultFocus();   // Set the initial focus when opening the combo (scrolling + for keyboard navigation support in the upcoming navigation branch)
+                        
+                    }
+                }
+                ImGui::EndCombo();
+            }
+        if(strcmp(item_current, "Temperature") == 0 ){//in this case we dont need
+            ImGui::SliderFloat("Min Temperature", &minValueColor, -50, 50);
+            ImGui::SliderFloat("Max Temperature", &maxValueColor, -50, 50);
+        }
+        if(strcmp(item_current, "Speed") == 0 ){//in this case we dont need
+            ImGui::SliderFloat("Min Speed", &minValueColor, 0, 100);
+            ImGui::SliderFloat("Max Speed", &maxValueColor, 1, 100);
+            
+            ImGui::ColorEdit3("Min Color", minColor);
+            ImGui::ColorEdit3("Max Color", maxColor);
+        }
+        if(strcmp(item_current, "Time of Day") == 0 ){//in this case we dont need
+            //ImGui::SliderFloat("Min Speed", &minValueColor, 0, 100);
+            //ImGui::SliderFloat("Max Speed", &maxValueColor, 1, 100);
+            ImGui::SliderFloat("Start Time", &minValueColor, 0, 23);
+            ImGui::SliderFloat("End Time", &maxValueColor, 0, 23);
+
+            ImGui::ColorEdit3("Min Color", minColor);
+            ImGui::ColorEdit3("Max Color", maxColor);
+        }
+
+        //ImGui::SameLine();
+//        static float minColor[3] = { 0.0f,0.0f,0.0f};
+//        static float maxColor[3] = { 1.0f,1.0f,1.0f};
+//        static int minValue = 0;
+//        static int maxValue = 50;
+
+//        if(ImGui::Button("PickColor"))
+//            ImGui::ColorPicker3("Range", minColor, ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview);
+        
+//        ImGui::ColorEdit3("Start Color", minColor);
+//        //ImGui::SameLine();
+//        //ImGui::SliderInt("Temperature Min", &temp, minTemp, maxTemp);
+//        ImGui::InputInt("Value Min", &minValue);
+//
+//        ImGui::ColorEdit3("End Color", maxColor);
+//        ImGui::InputInt("Value Max", &maxValue);
+        
+        
+        ImGui::EndGroup();
+//        ImGui::SameLine();
+//        ImGui::BeginGroup();
+//        ImGui::Text("Shape");
+//        if (ImGui::BeginCombo("Attribute", item_current, flags)){ // The second parameter is the label previewed before opening the combo.
+//            for (int n = 0; n < IM_ARRAYSIZE(items); n++){
+//                bool is_selected = (item_current == items[n]);
+//                if (ImGui::Selectable(items[n], is_selected)){
+//                    item_current = items[n];
+//                    std::cout << item_current;
+//                }
+//                if (is_selected){
+//                    ImGui::SetItemDefaultFocus();   // Set the initial focus when opening the combo (scrolling + for keyboard navigation support in the upcoming navigation branch)
+//
+//                }
+//            }
+//            ImGui::EndCombo();
+//        }
+//        ImGui::EndGroup();
+        
+//
+//        static float minColor[4] = { 0.0f,0.0f,0.0f,0.0f };
+//        ImGui::ColorPicker3("Low Value", minColor);
+//
+//        static float maxColor[4] = { 0.0f,0.0f,0.0f,0.0f };
+//        ImGui::ColorPicker3("Max Value", maxColor);
+
+        
         ImGui::End();
         
         ImGui::Render();
