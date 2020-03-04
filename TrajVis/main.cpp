@@ -390,6 +390,7 @@ int main () {
     trajectoryShader.AddUniform("time");
     trajectoryShader.AddUniform("minWidth");
     trajectoryShader.AddUniform("maxWidth");
+    trajectoryShader.AddUniform("minMaxCurrentFilter");
     trajectoryShader.UnUse();
     
     GLSLShader mapShader;
@@ -612,6 +613,14 @@ int main () {
     static float minWidth = 1;
     static float maxWidth = 5;
     
+    static float minFilter = -50;
+    static float maxFilter = 50;
+    static int filter = 0;
+    static int selected = 0;
+    
+    static char minDate[11] = "2000-01-01";
+    static char maxDate[11] = "2000-01-01";
+
 	while (!glfwWindowShouldClose (g_window)) {
 		
         //start imgui frame
@@ -708,9 +717,31 @@ int main () {
 //        glUniform1i(trajectoryShader("mode"), mode);
         
         //shouldn this be an auto &?
+        std::string date;
         for(auto curTraj : TrajList){
             glUniform1f(trajectoryShader("averageSpeed"), curTraj.averageSpeed);
             glUniform3fv(trajectoryShader("minMaxCurrent"), 1, glm::value_ptr(glm::vec3(minValueColor,maxValueColor,curTraj.segList[0].segWeather.temperature)));
+            
+            //should put this stuff in an aux function
+            float value;
+            if(selected == 0)
+                value = curTraj.segList[0].segWeather.temperature;
+            if(selected == 1)
+                value = curTraj.averageSpeed;
+            if(selected == 2){
+                value = std::stof(curTraj.segList[0].timeStamp.substr(11,2));
+            }
+            if(selected == 3){
+                value = std::stoi(curTraj.segList[0].timeStamp.substr(0,4) +
+                       curTraj.segList[0].timeStamp.substr(5,2) +
+                       curTraj.segList[0].timeStamp.substr(8,2));
+
+            }
+            
+            glUniform3fv(trajectoryShader("minMaxCurrentFilter"), 1, //glm::value_ptr(glm::vec3(minFilter,maxFilter,curTraj.segList[0].segWeather.temperature)));
+                //glm::value_ptr(glm::vec3(minFilter,maxFilter,curTraj.segList[0].segWeather.temperature)));
+                glm::value_ptr(glm::vec3(minFilter,maxFilter,value)));
+            
             glUniform3fv(trajectoryShader("minColor"),1,minColor);
             glUniform3fv(trajectoryShader("maxColor"),1,maxColor);
             glUniform1i(trajectoryShader("time"),std::stoi(curTraj.segList[0].timeStamp.substr(5,2)));//this needs to be mapped to a buffer
@@ -734,7 +765,7 @@ int main () {
 //        if(picker){
 //            ImGui::ColorEdit3("Select Color", color);
 //        }
-        static int selected = 0;
+        
         
         ImGui::RadioButton("Temperature", &selected, 0); ImGui::SameLine();
         ImGui::RadioButton("Speed", &selected, 1); ImGui::SameLine();
@@ -743,49 +774,66 @@ int main () {
         
 
         if(selected == 0 || selected == 1){
-            static char min[4] = "0";
-            static char max[4] = "0";
-            ImGui::InputText("Min Value", min, IM_ARRAYSIZE(min));
-            ImGui::InputText("Max Value", max, IM_ARRAYSIZE(max));
+//            static char min[4] = "0";
+//            static char max[4] = "0";
+//            ImGui::InputText("Min Value", min, IM_ARRAYSIZE(min));
+//            ImGui::InputText("Max Value", max, IM_ARRAYSIZE(max));
             
-            if(ImGui::Button("Filter")){
-                std::string attribute;
-                switch (selected) {
-                    case 0:
-                        attribute = "TEMPERATURE";
-                        break;
-                    case 1:
-                        attribute = "AVERAGESPEED";
-                        break;
-                    default:
-                        break;
-                }
-                FilterBySelection("TEMPERATURE", min, max, trajectoryShader, &TrajList);
+            if(selected == 0){
+                ImGui::SliderFloat("Min Temp", &minFilter, -50, 50);
+                ImGui::SliderFloat("Max Temp", &maxFilter, -50, 50 );
+                
             }
+            if(selected == 1){
+                ImGui::SliderFloat("Min Speed", &minFilter, 0, 100);
+                ImGui::SliderFloat("Max Speed", &maxFilter, 0, 100 );
+                
+            }
+//            if(ImGui::Button("Filter")){
+//                std::string attribute;
+//                switch (selected) {
+//                    case 0:
+//                        attribute = "TEMPERATURE";
+//                        break;
+//                    case 1:
+//                        attribute = "AVERAGESPEED";
+//                        break;
+//                    default:
+//                        break;
+//                }
+//                //FilterBySelection("TEMPERATURE", min, max, trajectoryShader, &TrajList);
+//            }
+            
         }
         else{
             //2009-10-02T03:24:28Z datetime format
 
             if(selected == 2){
-                static char min[4] = "0";
-                static char max[4] = "0";
+//                static char min[4] = "0";
+//                static char max[4] = "0";
+//
+//                ImGui::InputText("Start Time", min, IM_ARRAYSIZE(min));
+//                ImGui::InputText("End Time", max, IM_ARRAYSIZE(max));
+//                if(ImGui::Button("Filter")){
+//                    FilterByTime(min, max, trajectoryShader, &TrajList);
+//                }
                 
-                ImGui::InputText("Start Time", min, IM_ARRAYSIZE(min));
-                ImGui::InputText("End Time", max, IM_ARRAYSIZE(max));
-                if(ImGui::Button("Filter")){
-                    FilterByTime(min, max, trajectoryShader, &TrajList);
-                }
+                ImGui::SliderFloat("Start Time", &minFilter, 0, 23);
+                ImGui::SliderFloat("End Time", &maxFilter, 0, 23 );
             }
             if(selected == 3){
-                static char min[11] = "2000-01-01";
-                static char max[11] = "2000-01-01";
+                //should look into only doing this when there is change
+                ImGui::InputText("Start Date", minDate, IM_ARRAYSIZE(minDate));
+                ImGui::InputText("End Date", maxDate, IM_ARRAYSIZE(maxDate));
+                std::string min = minDate;
+                std::string max = maxDate;
                 
-                ImGui::InputText("Start Date", min, IM_ARRAYSIZE(min));
-                ImGui::InputText("End Date", max, IM_ARRAYSIZE(max));
                 
-                if(ImGui::Button("Filter")){
-                    FilterByDate(min, max, trajectoryShader, &TrajList);
-                }
+                minFilter = std::stof(min.substr(0,4) + min.substr(5,2) + min.substr(8,2));
+                maxFilter = std::stof(max.substr(0,4) + max.substr(5,2) + max.substr(8,2));
+                //if(ImGui::Button("Filter")){
+                    //FilterByDate(min, max, trajectoryShader, &TrajList);
+                //}
             }
         }
         

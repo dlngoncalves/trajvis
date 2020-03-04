@@ -16,6 +16,7 @@ uniform int mode;
 uniform vec2 windowSize;
 uniform float minWidth;
 uniform float maxWidth;
+uniform vec3 minMaxCurrentFilter; //packs everything we need for filtering on a vec3
 
 vec2 ToScreenSpace(vec4 vertex)
 {
@@ -44,6 +45,23 @@ bool isOutside()
     return false;
 }
 
+bool filterOut()
+{
+    float min = minMaxCurrentFilter.x;
+    float max = minMaxCurrentFilter.y;
+    float current = minMaxCurrentFilter.z;
+    
+    if(min == max)//just testing for the inital values
+        return false;
+    
+    if(current < min)
+        return true;
+    if(current > max)
+        return true;
+    
+    return false;
+}
+
 void main() {
     
     float thickness1;
@@ -53,12 +71,17 @@ void main() {
     color = vertColorTemp_g[1];
     
     
+    if(isOutside())
+        return;
+    
+    if(filterOut())
+        return;
+    
     //no thickness change
     if(mode == 0 ){
         thickness1 = 1;
         thickness2 = 1;
     }
-    
     //mode 1 - thickness is temperature
     if(mode == 1){
         //color = vec3(0.0,1.0,1.0);
@@ -71,11 +94,11 @@ void main() {
     else if(mode == 2){
         float thickPercentage = smoothstep(minMaxCurrent_g[1].x,minMaxCurrent_g[1].y,speed_g[1]);
 //        float thickPercentage = smoothstep(0,averageSpeed,speed_g[1]);
-        thickness1 = clamp(minWidth,maxWidth,mix(minWidth,maxWidth,thickPercentage))/10;
+        thickness1 = clamp(minWidth,maxWidth,mix(minWidth,maxWidth,thickPercentage))/5;
 //        thickness1 = mix(minWidth,maxWidth,thickPercentage);
         
         thickPercentage = smoothstep(minMaxCurrent_g[2].x,minMaxCurrent_g[2].y,speed_g[2]);
-        thickness2 = clamp(minWidth,maxWidth,mix(minWidth,maxWidth,thickPercentage))/10;
+        thickness2 = clamp(minWidth,maxWidth,mix(minWidth,maxWidth,thickPercentage))/5;
 //        thickness2 = mix(minWidth,maxWidth,thickPercentage);
         //thickness1 = clamp(speed_g[1]/averageSpeed,0.1,3.0);
         //thickness2 = clamp(speed_g[2]/averageSpeed,0.1,3.0);
@@ -88,9 +111,6 @@ void main() {
         thickness2 = 1;
     }
     
-    
-    if(isOutside())
-        return;
     
     //need to work with elevation data here
     float constantHeight = gl_in[1].gl_Position.y;
