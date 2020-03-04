@@ -15,6 +15,7 @@
 #include <iostream>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 //mapbox exemple queries
 //"https://api.mapbox.com/v4/mapbox.satellite/1/0/0@2x.jpg90?access_token=pk.eyJ1Ijoic2Vub3JzcGFya2xlIiwiYSI6ImNqdXU4ODQ2NTBnMDk0ZG1obDA4bWUzbmUifQ.gviggw2S34VwFVxshcbj_A"
 //"https://api.mapbox.com/v4/mapbox.satellite/16/23451/38510@2x.jpg90?access_token=pk.eyJ1Ijoic2Vub3JzcGFya2xlIiwiYSI6ImNqdXU4ODQ2NTBnMDk0ZG1obDA4bWUzbmUifQ.gviggw2S34VwFVxshcbj_A
@@ -489,17 +490,18 @@ GeoPosition Map::GetLocation(bool mockData)
         latitude = 40.0f;
         longitude = 115.0f;
         
-        //barcelona-madrid
-//      latitude = 41.5f;
-//        longitude = 1.5f;
+//        barcelona-madrid
+//      latitude = 30.0f;
+//      longitude = 0.0f;
         
         //nice
-        latitude = 43.5f;
-        longitude = 7.0f;
+//        latitude = 43.5f;
+//        longitude = 7.0f;
         
     }
-    //lat = latitude;
-    //lon = longitude;
+    
+    Map::lat = latitude;
+    Map::lon = longitude;
     
     GeoPosition pos;
     pos.lat = latitude;
@@ -508,6 +510,133 @@ GeoPosition Map::GetLocation(bool mockData)
     pos.latlonString = std::to_string(latitude) + "," + std::to_string(longitude);
     return pos;
 }
+
+std::vector<glm::vec2> Map::Corners(GeoPosition position)
+{
+    //we assume the grid is odd x odd
+    int tileCenter = (int)floor(TILEMAP_SIZE/2);
+    
+    int xCenter = long2tilex(position.lon, Map::zoom);
+    int yCenter = lat2tiley(position.lat, Map::zoom);
+    
+    int topLeftX = xCenter - tileCenter;
+    int topLeftY = yCenter - tileCenter;
+    
+    int bottomRightX = xCenter + tileCenter;
+    int bottomRightY = yCenter + tileCenter;
+    
+    float lat = tiley2lat(topLeftY, Map::zoom);
+    float lon = tilex2long(topLeftX, Map::zoom);
+    
+    std::vector<glm::vec2> corners;
+    glm::vec2 corner = glm::vec2(lat,lon);
+    corners.push_back(corner);
+    
+    lat = tiley2lat(bottomRightY+1, Map::zoom);
+    lon = tilex2long(bottomRightX+1, Map::zoom);
+    
+    corner = glm::vec2(lat,lon);
+    corners.push_back(corner);
+    
+    return corners;
+}
+
+//need to encapsulate these two functions in one
+
+std::vector<glm::vec2> Map::RowCorners(int row)
+{
+    //we assume the grid is odd x odd
+    int tileCenter = (int)floor(TILEMAP_SIZE/2);
+    
+//    int xCenter = long2tilex(position.lon, Map::zoom);
+//    int yCenter = lat2tiley(position.lat, Map::zoom);
+    
+    int xCenter = long2tilex(Map::lon, Map::zoom);
+    int yCenter = lat2tiley(Map::lat, Map::zoom);
+
+    
+    int topLeftX;
+    int topLeftY;
+    int bottomRightX;
+    int bottomRightY;
+    
+    if(row == 1){//top row
+        topLeftX = xCenter - tileCenter;
+        topLeftY = yCenter - (tileCenter+1);
+        bottomRightX = xCenter + tileCenter;;
+        bottomRightY = yCenter - (tileCenter-1);
+    }
+    if(row == -1){//bottom row
+        topLeftX = xCenter - tileCenter;
+        topLeftY = yCenter + (tileCenter+1);
+        bottomRightX = xCenter + tileCenter;;
+        bottomRightY = yCenter - tileCenter;
+    }
+
+    float lat = tiley2lat(topLeftY, Map::zoom);
+    float lon = tilex2long(topLeftX, Map::zoom);
+    
+    
+    std::vector<glm::vec2> corners;
+    glm::vec2 corner = glm::vec2(lat,lon);
+    corners.push_back(corner);
+    
+    lat = tiley2lat(bottomRightY+1, Map::zoom);
+    lon = tilex2long(bottomRightX+1, Map::zoom);
+    
+    corner = glm::vec2(lat,lon);
+    corners.push_back(corner);
+    
+    return corners;
+}
+
+std::vector<glm::vec2> Map::ColumnCorners(int column)
+{
+    //we assume the grid is odd x odd
+    int tileCenter = (int)floor(TILEMAP_SIZE/2);
+    
+    //    int xCenter = long2tilex(position.lon, Map::zoom);
+    //    int yCenter = lat2tiley(position.lat, Map::zoom);
+    
+    int xCenter = long2tilex(Map::lon, Map::zoom);
+    int yCenter = lat2tiley(Map::lat, Map::zoom);
+    
+    
+    int topLeftX;
+    int topLeftY;
+    int bottomRightX;
+    int bottomRightY;
+    
+    if(column == 1){//right column
+        topLeftX = xCenter + tileCenter+1;
+        topLeftY = yCenter - tileCenter;
+        bottomRightX = xCenter + tileCenter+1;
+        bottomRightY = yCenter + (tileCenter);
+    }
+    if(column == -1){//left column
+        topLeftX = xCenter - (tileCenter+1);
+        topLeftY = yCenter - tileCenter;
+        bottomRightX = xCenter - (tileCenter+1);
+        bottomRightY = yCenter + tileCenter;
+    }
+    
+    float lat = tiley2lat(topLeftY, Map::zoom);
+    float lon = tilex2long(topLeftX, Map::zoom);
+    
+    
+    std::vector<glm::vec2> corners;
+    glm::vec2 corner = glm::vec2(lat,lon);
+    corners.push_back(corner);
+    
+    lat = tiley2lat(bottomRightY+1, Map::zoom);
+    lon = tilex2long(bottomRightX+1, Map::zoom);
+    
+    corner = glm::vec2(lat,lon);
+    corners.push_back(corner);
+    
+    return corners;
+}
+
 
 void Map::LoadMap(float lat, float lon, int zoomLevel)
 {

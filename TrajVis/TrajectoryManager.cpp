@@ -6,4 +6,4 @@
 //  Copyright © 2019 Diego Gonçalves. All rights reserved.
 //
 
-#include "Trajectory.h"
+#include "TrajectoryManager.h"

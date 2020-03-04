@@ -202,10 +202,219 @@ std::vector<TrajParser> TrajParser::LoadTrajDescription(std::string file, GLSLSh
     return trajectories;
 }
 
+//static bool areEqual(const TrajParser &curTraj)
+//{
+//    return
+//}
+
+static bool FoundInVector(const std::vector<TrajParser> *trajectories, const std::string trajName )
+{
+    //TrajParser test;
+    
+    std::vector<TrajParser>::iterator it; std::find_if(trajectories->begin(), trajectories->end(),
+                 [trajName](const TrajParser &curTraj) -> bool {return curTraj.segList[0].timeStamp == trajName;});
+    
+    if(it == trajectories->end())
+        return false;
+    else
+        return true;
+}
+
+
+template < typename T>
+std::pair<bool, int > findInVector(const std::vector<T>  & vecOfElements, const T  & element)
+{
+    std::pair<bool, int > result;
+    
+    // Find given element in vector
+    auto it = std::find(vecOfElements.begin(), vecOfElements.end(), element);
+    
+    if (it != vecOfElements.end())
+    {
+        result.second = distance(vecOfElements.begin(), it);
+        result.first = true;
+    }
+    else
+    {
+        result.first = false;
+        result.second = -1;
+    }
+    
+    return result;
+}
+
+std::vector<TrajParser> TrajParser::LoadRow(GLSLShader &shader, int row, std::vector<TrajParser>* baseTrajectories)
+{
+    std::vector<TrajParser> trajectories;
+    sqlite3 *db;
+    std::string query;
+    char *zErrMsg = 0;
+
+    
+    int rc = sqlite3_open("trajectories.db", &db);
+    
+    std::vector<glm::vec2> corners;//2 cornerss
+    corners = Map::RowCorners(row);
+    
+    //this doesnt work if we are between zones
+    std::string minLat = std::to_string(corners[1].x);//should map lat to y and lon to x
+    std::string maxLat = std::to_string(corners[0].x);
+    
+    std::string minLon = std::to_string(corners[0].y);
+    std::string maxLon = std::to_string(corners[1].y);
+    
+    //std::string minLat = std::to_string(location.lat-latDelta);
+    //std::string maxLat = std::to_string(location.lat+latDelta);
+    //std::string minLon = std::to_string(location.lon-lonDelta);
+    //std::string maxLon = std::to_string(location.lon+lonDelta);
+    
+    query = "SELECT DISTINCT TRAJECTORYNAME FROM TRAJSEG WHERE LATITUDE BETWEEN " + minLat + " AND " + maxLat + " AND LONGITUDE BETWEEN "
+    + minLon + " AND " + maxLon + ";";
+    
+    std::vector<std::string> trajNames;
+    //have to remember that sqlite exec will step over all the rows
+    rc = sqlite3_exec(db, query.c_str(),trajListCallback, &trajNames, &zErrMsg);
+    
+    
+    for(int i = 0; i < trajNames.size(); i++){
+        //iterate over the trajectory names and get their segments
+        if(!FoundInVector(baseTrajectories, trajNames[i])){
+            std::cout << "NOT FOUND : " << trajNames[i] << "\n";
+            query = "SELECT * FROM TRAJSEG WHERE TRAJECTORYNAME IS " + trajNames[i] + ";";// ORDER BY DATETIME ASC;";
+            TrajParser curTrajDB(shader);
+            rc = sqlite3_exec(db, query.c_str(),trajSegCallback, &curTrajDB, &zErrMsg);
+            curTrajDB.SetupData();
+            trajectories.push_back(curTrajDB);
+        }
+        else{
+            std::cout << "ALREADY FOUND : " << trajNames[i] << "\n";
+        }
+    }
+    
+    
+    
+//    return trajectories;
+    sqlite3_close_v2(db);
+    return trajectories;
+}
+
+//need to encapsulate this stuff
+std::vector<TrajParser> TrajParser::LoadColumn(GLSLShader &shader, int column,std::vector<TrajParser>* baseTrajectories)
+{
+    std::vector<TrajParser> trajectories;
+    sqlite3 *db;
+    std::string query;
+    char *zErrMsg = 0;
+    
+    
+    int rc = sqlite3_open("trajectories.db", &db);
+    
+    std::vector<glm::vec2> corners;//2 cornerss
+    corners = Map::ColumnCorners(column);
+    
+    //this doesnt work if we are between zones
+    std::string minLat = std::to_string(corners[1].x);//should map lat to y and lon to x
+    std::string maxLat = std::to_string(corners[0].x);
+    
+    std::string minLon = std::to_string(corners[0].y);
+    std::string maxLon = std::to_string(corners[1].y);
+
+    
+    query = "SELECT DISTINCT TRAJECTORYNAME FROM TRAJSEG WHERE LATITUDE BETWEEN " + minLat + " AND " + maxLat + " AND LONGITUDE BETWEEN "
+    + minLon + " AND " + maxLon + ";";
+    
+    std::vector<std::string> trajNames;
+    //have to remember that sqlite exec will step over all the rows
+    rc = sqlite3_exec(db, query.c_str(),trajListCallback, &trajNames, &zErrMsg);
+    
+    
+    for(int i = 0; i < trajNames.size(); i++){
+        //iterate over the trajectory names and get their segments
+        if(!FoundInVector(baseTrajectories, trajNames[i])){
+            std::cout << "NOT FOUND : " << trajNames[i] << "\n";
+            query = "SELECT * FROM TRAJSEG WHERE TRAJECTORYNAME IS " + trajNames[i] + ";";// ORDER BY DATETIME ASC;";
+            TrajParser curTrajDB(shader);
+            rc = sqlite3_exec(db, query.c_str(),trajSegCallback, &curTrajDB, &zErrMsg);
+            curTrajDB.SetupData();
+            trajectories.push_back(curTrajDB);
+        }
+        else{
+            std::cout << "ALREADY FOUND : " << trajNames[i] << "\n";
+        }
+    }
+    sqlite3_close_v2(db);
+    return trajectories;
+}
+
+std::vector<TrajParser> TrajParser::LoadZoom(GLSLShader &shader,std::vector<TrajParser>* baseTrajectories)
+{
+    std::vector<TrajParser> trajectories;
+    //could this be leaking memory?
+    sqlite3 *db;
+    std::string query;
+    char *zErrMsg = 0;
+    
+    //this minLat maxLat stuff will be based on the limits of the map, at the current zoom level, at the current map size
+    float latDelta = 1.0;//this will be more complex later
+    float lonDelta = 1.0;
+    
+    int rc = sqlite3_open("trajectories.db", &db);
+    
+    std::vector<glm::vec2> corners;//2 cornerss
+    GeoPosition location{Map::lat,Map::lon};//dont need to assign the string and vec2 versions, not used here and have default values
+    corners = Map::Corners(location);
+    
+    //this doesnt work if we are between zones
+    std::string minLat = std::to_string(corners[1].x);//should map lat to y and lon to x
+    std::string maxLat = std::to_string(corners[0].x);
+    
+    std::string minLon = std::to_string(corners[0].y);
+    std::string maxLon = std::to_string(corners[1].y);
+    
+    //std::string minLat = std::to_string(location.lat-latDelta);
+    //std::string maxLat = std::to_string(location.lat+latDelta);
+    //std::string minLon = std::to_string(location.lon-lonDelta);
+    //std::string maxLon = std::to_string(location.lon+lonDelta);
+    
+    query = "SELECT DISTINCT TRAJECTORYNAME FROM TRAJSEG WHERE LATITUDE BETWEEN " + minLat + " AND " + maxLat + " AND LONGITUDE BETWEEN "
+    + minLon + " AND " + maxLon + ";";
+    
+    std::vector<std::string> trajNames;
+    //have to remember that sqlite exec will step over all the rows
+    rc = sqlite3_exec(db, query.c_str(),trajListCallback, &trajNames, &zErrMsg);
+    
+    for(int i = 0; i < trajNames.size(); i++){
+        //iterate over the trajectory names and get their segments
+        if(!FoundInVector(baseTrajectories, trajNames[i])){
+            std::cout << "NOT FOUND : " << trajNames[i] << "\n";
+            query = "SELECT * FROM TRAJSEG WHERE TRAJECTORYNAME IS " + trajNames[i] + ";";// ORDER BY DATETIME ASC;";
+            TrajParser curTrajDB(shader);
+            rc = sqlite3_exec(db, query.c_str(),trajSegCallback, &curTrajDB, &zErrMsg);
+            curTrajDB.SetupData();
+            trajectories.push_back(curTrajDB);
+        }
+        else{
+            std::cout << "ALREADY FOUND : " << trajNames[i] << "\n";
+        }
+    }
+    sqlite3_close_v2(db);
+    return trajectories;
+}
+
+void TrajParser::UnloadRow(int row)
+{
+    
+}
+
+void TrajParser::UnloadColumn(int column)
+{
+    
+}
+
 std::vector<TrajParser> TrajParser::LoadLocalTrajectories(GeoPosition location, GLSLShader &shader)
 {
     std::vector<TrajParser> trajectories;
-    
+    //could this be leaking memory?
     sqlite3 *db;
     std::string query;
     char *zErrMsg = 0;
@@ -216,10 +425,21 @@ std::vector<TrajParser> TrajParser::LoadLocalTrajectories(GeoPosition location, 
     
     int rc = sqlite3_open("trajectories.db", &db);
 
-    std::string minLat = std::to_string(location.lat-latDelta);
-    std::string maxLat = std::to_string(location.lat+latDelta);
-    std::string minLon = std::to_string(location.lon-lonDelta);
-    std::string maxLon = std::to_string(location.lon+lonDelta);
+    std::vector<glm::vec2> corners;//2 cornerss
+    
+    corners = Map::Corners(location);
+    
+    //this doesnt work if we are between zones
+    std::string minLat = std::to_string(corners[1].x);//should map lat to y and lon to x
+    std::string maxLat = std::to_string(corners[0].x);
+    
+    std::string minLon = std::to_string(corners[0].y);
+    std::string maxLon = std::to_string(corners[1].y);
+
+    //std::string minLat = std::to_string(location.lat-latDelta);
+    //std::string maxLat = std::to_string(location.lat+latDelta);
+    //std::string minLon = std::to_string(location.lon-lonDelta);
+    //std::string maxLon = std::to_string(location.lon+lonDelta);
     
     query = "SELECT DISTINCT TRAJECTORYNAME FROM TRAJSEG WHERE LATITUDE BETWEEN " + minLat + " AND " + maxLat + " AND LONGITUDE BETWEEN "
     + minLon + " AND " + maxLon + ";";
@@ -236,7 +456,7 @@ std::vector<TrajParser> TrajParser::LoadLocalTrajectories(GeoPosition location, 
         curTrajDB.SetupData();
         trajectories.push_back(curTrajDB);
     }
-    
+    sqlite3_close_v2(db);
     return trajectories;
 }
 
@@ -715,6 +935,144 @@ glm::mat4 TrajParser::SetTrajMatrix(float lat,float lon)
     return trajMatrix;
 }
 
+std::vector<TrajParser> TrajParser::FilterTrajectories(std::string attribute, std::string minValue, std::string maxValue,GLSLShader &shader)
+{
+    std::vector<TrajParser> trajectories;
+    sqlite3 *db;
+    std::string query;
+    char *zErrMsg = 0;
+    
+    //this minLat maxLat stuff will be based on the limits of the map, at the current zoom level, at the current map size
+    float latDelta = 1.0;//this will be more complex later
+    float lonDelta = 1.0;
+    
+    int rc = sqlite3_open("trajectories.db", &db);
+    
+    std::vector<glm::vec2> corners;//2 cornerss
+    GeoPosition location{Map::lat,Map::lon};
+    corners = Map::Corners(location);
+    
+    //this doesnt work if we are between zones
+    std::string minLat = std::to_string(corners[1].x);//should map lat to y and lon to x
+    std::string maxLat = std::to_string(corners[0].x);
+    
+    std::string minLon = std::to_string(corners[0].y);
+    std::string maxLon = std::to_string(corners[1].y);
+    
+    
+    query = "SELECT DISTINCT TRAJECTORYNAME FROM TRAJSEG WHERE LATITUDE BETWEEN " + minLat + " AND " + maxLat + " AND LONGITUDE BETWEEN "
+    + minLon + " AND " + maxLon + + " AND " + attribute + " BETWEEN " + minValue + " AND " + maxValue + ";";
+    
+    std::vector<std::string> trajNames;
+    //have to remember that sqlite exec will step over all the rows
+    rc = sqlite3_exec(db, query.c_str(),trajListCallback, &trajNames, &zErrMsg);
+    
+    for(int i = 0; i < trajNames.size(); i++){
+        //iterate over the trajectory names and get their segments
+        query = "SELECT * FROM TRAJSEG WHERE TRAJECTORYNAME IS " + trajNames[i] + ";";// ORDER BY DATETIME ASC;";
+        TrajParser curTrajDB(shader);
+        rc = sqlite3_exec(db, query.c_str(),trajSegCallback, &curTrajDB, &zErrMsg);
+        curTrajDB.SetupData();
+        trajectories.push_back(curTrajDB);
+    }
+    sqlite3_close_v2(db);
+    return trajectories;
+}
+
+//refactor in having most things on the same function and the function calls just build the query
+std::vector<TrajParser> TrajParser::FilterByTime(std::string minValue, std::string maxValue,GLSLShader &shader)
+{
+    //time filtering is a bit different
+    
+    std::vector<TrajParser> trajectories;
+    sqlite3 *db;
+    std::string query;
+    char *zErrMsg = 0;
+    
+    //this minLat maxLat stuff will be based on the limits of the map, at the current zoom level, at the current map size
+    float latDelta = 1.0;//this will be more complex later
+    float lonDelta = 1.0;
+    
+    int rc = sqlite3_open("trajectories.db", &db);
+    
+    std::vector<glm::vec2> corners;//2 cornerss
+    GeoPosition location{Map::lat,Map::lon};
+    corners = Map::Corners(location);
+    
+    //this doesnt work if we are between zones
+    std::string minLat = std::to_string(corners[1].x);//should map lat to y and lon to x
+    std::string maxLat = std::to_string(corners[0].x);
+    
+    std::string minLon = std::to_string(corners[0].y);
+    std::string maxLon = std::to_string(corners[1].y);
+    
+    //select trajectoryname,substr(datetime,12,2) as time from trajseg where time = "00";
+    //select count(*) from (select trajectoryname,substr(datetime,12,2) as time from trajseg where time between "00" and "05");
+    query = "SELECT DISTINCT TRAJECTORYNAME FROM (SELECT TRAJECTORYNAME,SUBSTR(DATETIME,12,2) AS TIME FROM TRAJSEG WHERE TIME BETWEEN";
+    query += "\"" + minValue  + "\" AND  \"" + maxValue + "\"";
+    query += " AND LATITUDE BETWEEN " + minLat + " AND " + maxLat + " AND LONGITUDE BETWEEN " + minLon + " AND " + maxLon + ");";
+    
+    std::vector<std::string> trajNames;
+    //have to remember that sqlite exec will step over all the rows
+    rc = sqlite3_exec(db, query.c_str(),trajListCallback, &trajNames, &zErrMsg);
+    
+    for(int i = 0; i < trajNames.size(); i++){
+        //iterate over the trajectory names and get their segments
+        query = "SELECT * FROM TRAJSEG WHERE TRAJECTORYNAME IS " + trajNames[i] + ";";// ORDER BY DATETIME ASC;";
+        TrajParser curTrajDB(shader);
+        rc = sqlite3_exec(db, query.c_str(),trajSegCallback, &curTrajDB, &zErrMsg);
+        curTrajDB.SetupData();
+        trajectories.push_back(curTrajDB);
+    }
+    sqlite3_close_v2(db);
+    return trajectories;
+}
+
+//again, should refactor this
+std::vector<TrajParser> TrajParser::FilterByDate(std::string minValue, std::string maxValue,GLSLShader &shader)
+{
+    std::vector<TrajParser> trajectories;
+    sqlite3 *db;
+    std::string query;
+    char *zErrMsg = 0;
+    
+    //this minLat maxLat stuff will be based on the limits of the map, at the current zoom level, at the current map size
+    float latDelta = 1.0;//this will be more complex later
+    float lonDelta = 1.0;
+    
+    int rc = sqlite3_open("trajectories.db", &db);
+    
+    std::vector<glm::vec2> corners;//2 cornerss
+    GeoPosition location{Map::lat,Map::lon};
+    corners = Map::Corners(location);
+    
+    //this doesnt work if we are between zones
+    std::string minLat = std::to_string(corners[1].x);//should map lat to y and lon to x
+    std::string maxLat = std::to_string(corners[0].x);
+    
+    std::string minLon = std::to_string(corners[0].y);
+    std::string maxLon = std::to_string(corners[1].y);
+    
+    //select distinct trajectoryname from (select trajectoryname,substr(datetime,0,5)||substr(datetime,6,2)||substr(datetime,9,2) as date from trajseg) where date >="20001225" and date <= "2010010101";
+
+    query = "SELECT DISTINCT TRAJECTORYNAME FROM (SELECT TRAJECTORYNAME,substr(datetime,0,5)||substr(datetime,6,2)||substr(datetime,9,2) as date from trajseg WHERE LATITUDE BETWEEN " +minLat+ " AND " +maxLat+ " AND LONGITUDE BETWEEN " +minLon+ " AND " +maxLon+ ")" ;
+    query += " WHERE DATE >= \"" + minValue + "\" AND DATE <= \""  + maxValue + "\";";
+    
+    std::vector<std::string> trajNames;
+    //have to remember that sqlite exec will step over all the rows
+    rc = sqlite3_exec(db, query.c_str(),trajListCallback, &trajNames, &zErrMsg);
+    
+    for(int i = 0; i < trajNames.size(); i++){
+        //iterate over the trajectory names and get their segments
+        query = "SELECT * FROM TRAJSEG WHERE TRAJECTORYNAME IS " + trajNames[i] + ";";// ORDER BY DATETIME ASC;";
+        TrajParser curTrajDB(shader);
+        rc = sqlite3_exec(db, query.c_str(),trajSegCallback, &curTrajDB, &zErrMsg);
+        curTrajDB.SetupData();
+        trajectories.push_back(curTrajDB);
+    }
+    sqlite3_close_v2(db);
+    return trajectories;
+}
 //just playing around with some stuff
 void TrajParser::Render()
 {

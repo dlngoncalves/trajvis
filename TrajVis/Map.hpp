@@ -92,9 +92,9 @@ struct GeoPosition
 {
 //doing things this way so aggregate initialization is possible (with the constructor it is not)
 //think it might make more sense to use a vec2 for lat lon?
-    std::string latlonString = "0,0";
     float lat = 0.0;
     float lon = 0.0;
+    std::string latlonString = "0,0";
     glm::vec2 latlonVec = glm::vec2(0.0,0.0); //might be too much memory use for this
     
 //    std::string latlon;
@@ -204,8 +204,13 @@ public:
     static double tilex2long(int x, int z);
     static double tiley2lat(int y, int z);
     
+    static std::vector<glm::vec2> Corners(GeoPosition position);
+    static std::vector<glm::vec2> RowCorners(int row);
+    static std::vector<glm::vec2> ColumnCorners(int column);
+    
     void GetTile(int x, int y, int zoom);
     
+    //this function returns something but ALSO sets the state of something inside it, this is bad
     static GeoPosition GetLocation(bool mockData = false);
     
     //will use one of these to redraw the entire tilemap
