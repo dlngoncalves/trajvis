@@ -1021,7 +1021,7 @@ int main () {
         processs_keyboard(g_window, &camera,&myMap, &TrajList, trajMatrix,trajectoryShader);
         //this should be every key pressed now
         float curDistance = cameraDistance(&camera);
-        if(abs(distance-curDistance) > 100){
+        if(abs(distance-curDistance) >= 100){
             //ratio = 1/curDistance;
             SetZoomLevel(TrajList, curDistance, mapShader, myMap, ratio, startPos, trajMatrix, zoom);
             distance = curDistance;

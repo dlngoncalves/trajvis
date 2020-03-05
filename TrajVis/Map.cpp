@@ -345,6 +345,8 @@ void Tile::GetMapData(int x, int y, int curX, int curY, int zoom)
     glBindTexture(GL_TEXTURE_2D, textureID);
     glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,ximg,yimg,0,GL_RGBA,GL_UNSIGNED_BYTE,image_data);
     
+    stbi_image_free(image_data);
+    
     //glTexSubImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, ximg, yimg, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
     glGenerateMipmap(GL_TEXTURE_2D);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -395,6 +397,7 @@ void Tile::GetHeightData(int x, int y, int curX, int curY, int zoom)
     glBindTexture(GL_TEXTURE_2D, height_texID);
     glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,ximg,yimg,0,GL_RGBA,GL_UNSIGNED_BYTE,height_data);
     
+    stbi_image_free(height_data);
     //glTexSubImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, ximg, yimg, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
     glGenerateMipmap(GL_TEXTURE_2D);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

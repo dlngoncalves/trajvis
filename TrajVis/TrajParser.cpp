@@ -826,15 +826,20 @@ void TrajParser::SetupData()
     //this works but we should look into abstracting away from the trajectory code the opengl stuff
     
     //when changing the buffer data should probably not regen
-    glGenBuffers(1, &vertexBufferObject);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
+    if(!glIsBuffer(this->vertexBufferObject))
+        glGenBuffers(1, &this->vertexBufferObject);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, this->vertexBufferObject);
     //not sure if should use glm data pointer or vector data pointer
-    glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(glm::vec3), (float *)glm::value_ptr(positions.front()), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(glm::vec3), NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(glm::vec3), (float *)glm::value_ptr(positions.front()), GL_DYNAMIC_DRAW);
     
+    if(!glIsBuffer(weatherBufferObject))
+        glGenBuffers(1, &weatherBufferObject);
     
-    glGenBuffers(1, &weatherBufferObject);
     glBindBuffer(GL_ARRAY_BUFFER, weatherBufferObject);
-    glBufferData(GL_ARRAY_BUFFER, tempColors.size() * sizeof(glm::vec3), (float *)glm::value_ptr(tempColors.front()), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, tempColors.size() * sizeof(glm::vec3), NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, tempColors.size() * sizeof(glm::vec3), (float *)glm::value_ptr(tempColors.front()), GL_DYNAMIC_DRAW);
 
     //Cant believe theres no better way to do this in c++
     std::vector<float> speeds;
@@ -842,11 +847,16 @@ void TrajParser::SetupData()
         speeds.push_back(seg.speed);
     }
     
-    glGenBuffers(1, &speedArrayObject);
-    glBindBuffer(GL_ARRAY_BUFFER, speedArrayObject);
-    glBufferData(GL_ARRAY_BUFFER, speeds.size() * sizeof(float), speeds.data(), GL_STATIC_DRAW);
+    if(!glIsBuffer(speedArrayObject))
+        glGenBuffers(1, &speedArrayObject);
     
-    glGenVertexArrays(1, &vertexArrayObject);
+    glBindBuffer(GL_ARRAY_BUFFER, speedArrayObject);
+    glBufferData(GL_ARRAY_BUFFER, speeds.size() * sizeof(float), NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, speeds.size() * sizeof(float), speeds.data(), GL_DYNAMIC_DRAW);
+    
+    if(!glIsVertexArray(vertexArrayObject))
+        glGenVertexArrays(1, &vertexArrayObject);
+    
     glBindVertexArray(vertexArrayObject);
     
     glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);

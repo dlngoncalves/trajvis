@@ -100,6 +100,11 @@ public:
     TrajParser(GLSLShader &shader): myShader(shader)
     {
         //empty constructor to load data from database
+        //instantiating these here so they can be used inside the for loop
+        vertexBufferObject = 0;
+        weatherBufferObject = 0;
+        vertexArrayObject = 0;
+        speedArrayObject = 0;
     }
     
     static void UpdateTrajMatrix();
