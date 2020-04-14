@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VariablesViewState
+   version = "1.0">
+   <ContextStates>
+      <ContextState
+         contextName = "TrajParser::SetSpeed():TrajParser.cpp">
+      </ContextState>
+      <ContextState
+         contextName = "TrajParser::LoadLocalTrajectories(GeoPosition, GLSLShader&amp;):TrajParser.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "trajNames[i]">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "insertTrajectory(TrajParser&amp;, std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, sqlite3*):TrajParser.cpp">
+      </ContextState>
+      <ContextState
+         contextName = "TrajParser::TrajParser(std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;):TrajParser.cpp">
+      </ContextState>
+      <ContextState
+         contextName = "trajCallback(void*, int, char**, char**):TrajParser.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "TrajectoryName">
+            </PersistentString>
+            <PersistentString
+               value = "argv">
+            </PersistentString>
+            <PersistentString
+               value = "argv[0]">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "TrajParser::LoadTrajDescription(std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;, GLSLShader&amp;):TrajParser.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "&amp;curTrajDB">
+            </PersistentString>
+            <PersistentString
+               value = "trajName[0]">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "Pan(Direction, Camera*, Map*, float*):main.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "trajMat[1]">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "main:main.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "curTraj.positions.size()">
+            </PersistentString>
+            <PersistentString
+               value = "Tile::tileScale">
+            </PersistentString>
+            <PersistentString
+               value = "round(curDistance)">
+            </PersistentString>
+            <PersistentString
+               value = "date">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "trajListCallback(void*, int, char**, char**):TrajParser.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "argv[1]">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "TrajParser::timeDelta(TrajSeg const&amp;, TrajSeg const&amp;):TrajParser.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "pos1">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "Map::RowCorners(int):Map.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "Map::lon">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "TrajParser::getInstantSpeed(TrajSeg const&amp;, TrajSeg const&amp;):TrajParser.cpp">
+      </ContextState>
+      <ContextState
+         contextName = "Map::Corners(GeoPosition):Map.cpp">
+      </ContextState>
+      <ContextState
+         contextName = "TrajParser::LoadRow(GLSLShader&amp;, int, std::__1::vector&lt;TrajParser, std::__1::allocator&lt;TrajParser&gt; &gt;*):TrajParser.cpp">
+      </ContextState>
+      <ContextState
+         contextName = "Map::FillMapTiles():Map.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "Map::zoom">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "operator&gt;&gt;(std::__1::basic_stringstream&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;&amp;, TrajSeg&amp;):TrajParser.cpp">
+      </ContextState>
+      <ContextState
+         contextName = "TrajParser::convertLatLon(TrajSeg&amp;):TrajParser.cpp">
+      </ContextState>
+      <ContextState
+         contextName = "trajSegCallback(void*, int, char**, char**):TrajParser.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "argv[i]">
+            </PersistentString>
+            <PersistentString
+               value = "azColName[i]">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+   </ContextStates>
+</VariablesViewState>
