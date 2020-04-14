@@ -94,11 +94,11 @@ void main() {
     else if(mode == 2){
         float thickPercentage = smoothstep(minMaxCurrent_g[1].x,minMaxCurrent_g[1].y,speed_g[1]);
 //        float thickPercentage = smoothstep(0,averageSpeed,speed_g[1]);
-        thickness1 = clamp(minWidth,maxWidth,mix(minWidth,maxWidth,thickPercentage))/5;
+        thickness1 = clamp(minWidth,maxWidth,mix(minWidth,maxWidth,thickPercentage));
 //        thickness1 = mix(minWidth,maxWidth,thickPercentage);
         
         thickPercentage = smoothstep(minMaxCurrent_g[2].x,minMaxCurrent_g[2].y,speed_g[2]);
-        thickness2 = clamp(minWidth,maxWidth,mix(minWidth,maxWidth,thickPercentage))/5;
+        thickness2 = clamp(minWidth,maxWidth,mix(minWidth,maxWidth,thickPercentage));
 //        thickness2 = mix(minWidth,maxWidth,thickPercentage);
         //thickness1 = clamp(speed_g[1]/averageSpeed,0.1,3.0);
         //thickness2 = clamp(speed_g[2]/averageSpeed,0.1,3.0);

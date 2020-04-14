@@ -718,11 +718,13 @@ int main () {
         
         //shouldn this be an auto &?
         std::string date;
-        for(auto curTraj : TrajList){
+        //for(auto curTraj : TrajList){
+        TrajParser curTraj = TrajList[0];
             glUniform1f(trajectoryShader("averageSpeed"), curTraj.averageSpeed);
             glUniform3fv(trajectoryShader("minMaxCurrent"), 1, glm::value_ptr(glm::vec3(minValueColor,maxValueColor,curTraj.segList[0].segWeather.temperature)));
             
             //should put this stuff in an aux function
+            //if we are going to use just one buffer these values have to be vertex attributes
             float value;
             if(selected == 0)
                 value = curTraj.segList[0].segWeather.temperature;
@@ -748,9 +750,9 @@ int main () {
             glUniform1f(trajectoryShader("minWidth"),minWidth);
             glUniform1f(trajectoryShader("maxWidth"),maxWidth);
             glBindVertexArray (curTraj.vertexArrayObject);
-            glDrawArrays (GL_LINE_STRIP_ADJACENCY, 0,(int)curTraj.positions.size());
+            glDrawArrays (GL_LINE_STRIP_ADJACENCY, 0,700000);
             //glDrawArrays (GL_POINTS, 0, (int)curTraj.positions.size());
-        }
+        //}
         
         
         bool my_tool_active;
@@ -1021,7 +1023,7 @@ int main () {
         processs_keyboard(g_window, &camera,&myMap, &TrajList, trajMatrix,trajectoryShader);
         //this should be every key pressed now
         float curDistance = cameraDistance(&camera);
-        if(abs(distance-curDistance) >= 100){
+        if(abs(distance-curDistance) >= 100){//this should not be here
             //ratio = 1/curDistance;
             SetZoomLevel(TrajList, curDistance, mapShader, myMap, ratio, startPos, trajMatrix, zoom);
             distance = curDistance;

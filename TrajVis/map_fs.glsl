@@ -33,7 +33,6 @@ void main () {
     
     //fragcolour = vec4 (colour, 1.0);
     fragcolour = texture(curTexture,texcoords);
-    
     //fragcolour = texture(heightMapTex,texcoords);
     //fragcolour = vec4(texcoords.x,texcoords.y,0.0,1.0);
     

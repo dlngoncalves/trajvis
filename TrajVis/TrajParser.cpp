@@ -453,9 +453,10 @@ std::vector<TrajParser> TrajParser::LoadLocalTrajectories(GeoPosition location, 
         query = "SELECT * FROM TRAJSEG WHERE TRAJECTORYNAME IS " + trajNames[i] + ";";// ORDER BY DATETIME ASC;";
         TrajParser curTrajDB(shader);
         rc = sqlite3_exec(db, query.c_str(),trajSegCallback, &curTrajDB, &zErrMsg);
-        curTrajDB.SetupData();
+        //curTrajDB.SetupData();
         trajectories.push_back(curTrajDB);
     }
+    trajectories[0].SetupAllData(&trajectories);
     sqlite3_close_v2(db);
     return trajectories;
 }
@@ -737,9 +738,11 @@ void TrajParser::ResetPositions(double lat, double lon, std::vector<TrajParser> 
         for(int i = 0; i < curTraj.positions.size(); i++){
             curTraj.positions[i] = TrajParser::convertLatLon(curTraj.segList[i], TrajParser::basePosition);
         }
-        curTraj.SetupData();
+        //curTraj.SetupData();
     }
 
+    TrajParser set = (*trajectories)[0];
+    set.SetupAllData(trajectories);
 }
 
 float TrajParser::simpleDistance(glm::vec2 pos1, glm::vec2 pos2)
@@ -853,6 +856,68 @@ void TrajParser::SetupData()
     glBindBuffer(GL_ARRAY_BUFFER, speedArrayObject);
     glBufferData(GL_ARRAY_BUFFER, speeds.size() * sizeof(float), NULL, GL_DYNAMIC_DRAW);
     glBufferData(GL_ARRAY_BUFFER, speeds.size() * sizeof(float), speeds.data(), GL_DYNAMIC_DRAW);
+    
+    if(!glIsVertexArray(vertexArrayObject))
+        glGenVertexArrays(1, &vertexArrayObject);
+    
+    glBindVertexArray(vertexArrayObject);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0 , 0);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, weatherBufferObject);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, speedArrayObject);
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 0, 0);
+    
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+}
+
+//this is just a test
+void TrajParser::SetupAllData(std::vector<TrajParser>* Trajectories)
+{
+    std::vector<glm::vec3> positions;
+    std::vector<glm::vec3> weather; //those will be generic, so probably should rename them
+    std::vector<float> speed;
+    
+    std::vector<int> trajID;
+    
+    for(auto &curTraj : *Trajectories){
+        positions.insert(positions.end(), curTraj.positions.begin(),curTraj.positions.end());
+        weather.insert(weather.end(), curTraj.tempColors.begin(),curTraj.tempColors.end());
+        //speed.insert(speed.end(), curTraj.speeds)
+        //std::vector<float> speeds;
+        for(auto &seg : curTraj.segList){
+            speed.push_back(seg.speed);
+        }
+        
+    }
+    
+    if(!glIsBuffer(this->vertexBufferObject))
+        glGenBuffers(1, &this->vertexBufferObject);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, this->vertexBufferObject);
+    //not sure if should use glm data pointer or vector data pointer
+    glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(glm::vec3), NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(glm::vec3), (float *)glm::value_ptr(positions.front()), GL_DYNAMIC_DRAW);
+    
+    if(!glIsBuffer(weatherBufferObject))
+        glGenBuffers(1, &weatherBufferObject);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, weatherBufferObject);
+    glBufferData(GL_ARRAY_BUFFER, weather.size() * sizeof(glm::vec3), NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, weather.size() * sizeof(glm::vec3), (float *)glm::value_ptr(weather.front()), GL_DYNAMIC_DRAW);
+    
+    
+    if(!glIsBuffer(speedArrayObject))
+        glGenBuffers(1, &speedArrayObject);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, speedArrayObject);
+    glBufferData(GL_ARRAY_BUFFER, speed.size() * sizeof(float), NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, speed.size() * sizeof(float), speed.data(), GL_DYNAMIC_DRAW);
     
     if(!glIsVertexArray(vertexArrayObject))
         glGenVertexArrays(1, &vertexArrayObject);

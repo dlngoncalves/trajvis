@@ -161,6 +161,8 @@ public:
     GLuint speedArrayObject;
     void SetupData();
     
+    void SetupAllData(std::vector<TrajParser>* Trajectories);
+    
     //we had to create a copy operator because the shader member is a reference
     ///TrajParser() =default;
     //TrajParser(const TrajParser&) =delete;
