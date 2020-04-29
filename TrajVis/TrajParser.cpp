@@ -207,17 +207,32 @@ std::vector<TrajParser> TrajParser::LoadTrajDescription(std::string file, GLSLSh
 //    return
 //}
 
+
 static bool FoundInVector(const std::vector<TrajParser> *trajectories, const std::string trajName )
 {
     //TrajParser test;
     
-    std::vector<TrajParser>::iterator it; std::find_if(trajectories->begin(), trajectories->end(),
-                 [trajName](const TrajParser &curTraj) -> bool {return curTraj.segList[0].timeStamp == trajName;});
+//    std::vector<TrajParser>::iterator it;
+//    std::find_if(trajectories->begin(), trajectories->end(),
+//                 [trajName](const TrajParser &curTraj) -> bool {std::cout << curTraj.trajName << "\n"; return curTraj.trajName.substr(0,14) == trajName.substr(0,14);});
+//
+//    if(it == trajectories->end())
+//        return false;
+//    else
+//        return true;
     
-    if(it == trajectories->end())
-        return false;
-    else
-        return true;
+    for(int i = 0; i< trajectories->size(); i++){
+        if(trajectories->at(i).trajName.substr(0,14) == trajName.substr(0,14))
+            return true;
+    }
+//
+    return false;
+////    for(auto &curTraj : *trajectories ){
+////        if(curTraj.trajName == trajName)
+////            return true;
+////    }
+//
+//    return false;
 }
 
 
@@ -282,6 +297,7 @@ std::vector<TrajParser> TrajParser::LoadRow(GLSLShader &shader, int row, std::ve
             std::cout << "NOT FOUND : " << trajNames[i] << "\n";
             query = "SELECT * FROM TRAJSEG WHERE TRAJECTORYNAME IS " + trajNames[i] + ";";// ORDER BY DATETIME ASC;";
             TrajParser curTrajDB(shader);
+            curTrajDB.trajName = trajNames[i];
             rc = sqlite3_exec(db, query.c_str(),trajSegCallback, &curTrajDB, &zErrMsg);
             curTrajDB.SetupData();
             trajectories.push_back(curTrajDB);
@@ -297,6 +313,8 @@ std::vector<TrajParser> TrajParser::LoadRow(GLSLShader &shader, int row, std::ve
     sqlite3_close_v2(db);
     return trajectories;
 }
+
+//gonna have a load quad here
 
 //need to encapsulate this stuff
 std::vector<TrajParser> TrajParser::LoadColumn(GLSLShader &shader, int column,std::vector<TrajParser>* baseTrajectories)
@@ -334,6 +352,7 @@ std::vector<TrajParser> TrajParser::LoadColumn(GLSLShader &shader, int column,st
             std::cout << "NOT FOUND : " << trajNames[i] << "\n";
             query = "SELECT * FROM TRAJSEG WHERE TRAJECTORYNAME IS " + trajNames[i] + ";";// ORDER BY DATETIME ASC;";
             TrajParser curTrajDB(shader);
+            curTrajDB.trajName = trajNames[i];
             rc = sqlite3_exec(db, query.c_str(),trajSegCallback, &curTrajDB, &zErrMsg);
             curTrajDB.SetupData();
             trajectories.push_back(curTrajDB);
@@ -379,6 +398,7 @@ std::vector<TrajParser> TrajParser::LoadZoom(GLSLShader &shader,std::vector<Traj
     query = "SELECT DISTINCT TRAJECTORYNAME FROM TRAJSEG WHERE LATITUDE BETWEEN " + minLat + " AND " + maxLat + " AND LONGITUDE BETWEEN "
     + minLon + " AND " + maxLon + ";";
     
+    
     std::vector<std::string> trajNames;
     //have to remember that sqlite exec will step over all the rows
     rc = sqlite3_exec(db, query.c_str(),trajListCallback, &trajNames, &zErrMsg);
@@ -389,6 +409,7 @@ std::vector<TrajParser> TrajParser::LoadZoom(GLSLShader &shader,std::vector<Traj
             std::cout << "NOT FOUND : " << trajNames[i] << "\n";
             query = "SELECT * FROM TRAJSEG WHERE TRAJECTORYNAME IS " + trajNames[i] + ";";// ORDER BY DATETIME ASC;";
             TrajParser curTrajDB(shader);
+            curTrajDB.trajName = trajNames[i];
             rc = sqlite3_exec(db, query.c_str(),trajSegCallback, &curTrajDB, &zErrMsg);
             curTrajDB.SetupData();
             trajectories.push_back(curTrajDB);
@@ -411,6 +432,7 @@ void TrajParser::UnloadColumn(int column)
     
 }
 
+//will change this here so everything gets in the same buffer, not just the vertex data
 std::vector<TrajParser> TrajParser::LoadLocalTrajectories(GeoPosition location, GLSLShader &shader)
 {
     std::vector<TrajParser> trajectories;
@@ -441,9 +463,12 @@ std::vector<TrajParser> TrajParser::LoadLocalTrajectories(GeoPosition location, 
     //std::string minLon = std::to_string(location.lon-lonDelta);
     //std::string maxLon = std::to_string(location.lon+lonDelta);
     
+    //also need to change this I guess
     query = "SELECT DISTINCT TRAJECTORYNAME FROM TRAJSEG WHERE LATITUDE BETWEEN " + minLat + " AND " + maxLat + " AND LONGITUDE BETWEEN "
     + minLon + " AND " + maxLon + ";";
-    
+    //ALREADY FOUND : 20090424094722
+    //ALREADY FOUND : 20090426061534
+
     std::vector<std::string> trajNames;
     //have to remember that sqlite exec will step over all the rows
     rc = sqlite3_exec(db, query.c_str(),trajListCallback, &trajNames, &zErrMsg);
@@ -452,6 +477,7 @@ std::vector<TrajParser> TrajParser::LoadLocalTrajectories(GeoPosition location, 
         //iterate over the trajectory names and get their segments
         query = "SELECT * FROM TRAJSEG WHERE TRAJECTORYNAME IS " + trajNames[i] + ";";// ORDER BY DATETIME ASC;";
         TrajParser curTrajDB(shader);
+        curTrajDB.trajName = trajNames[i];
         rc = sqlite3_exec(db, query.c_str(),trajSegCallback, &curTrajDB, &zErrMsg);
         curTrajDB.SetupData();
         trajectories.push_back(curTrajDB);

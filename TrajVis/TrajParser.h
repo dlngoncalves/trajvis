@@ -59,6 +59,7 @@ public:
     //TrajParser();
     //we still dont have many properties concerning the whole trajectory --adding average speed here, could add temperature
     float averageSpeed;
+    std::string trajName;
     
     static glm::vec3 convertLatLon(TrajSeg &segment,glm::vec3 refPoint);
     
@@ -132,6 +133,8 @@ public:
     
     static void UnloadRow(int row);
     static void UnloadColumn(int column);
+    
+    //List<TrajSeg> loadQuadrant();
     
     //regarding those two vectors - first stores positions already converted to xyz and second stores lat-lon info
     std::vector<glm::vec3> positions; //moving this here for easier access

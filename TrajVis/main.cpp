@@ -231,43 +231,49 @@ void processs_keyboard(GLFWwindow *window, Camera *cam,Map *map, std::vector<Tra
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_W)){
         //cam->cameraPosition += cam->cameraSpeed * cam->cameraFront;
         //cam->cameraPosition += directionVertical * cam->cameraSpeed;
-        Pan(Direction::North, cam,map, trajectories,trajMatrix);
+       
         *tempVector = TrajParser::LoadRow(shader,1,trajectories);
         trajectories->insert(trajectories->end(),tempVector->begin(),tempVector->end() );
+         Pan(Direction::North, cam,map, trajectories,trajMatrix);
     }
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_S)){
         //cam->cameraPosition -= cam->cameraSpeed * cam->cameraFront;
         //cam->cameraPosition -= directionVertical * cam->cameraSpeed;
-        Pan(Direction::South, cam,map, trajectories,trajMatrix);
+        
         *tempVector = TrajParser::LoadRow(shader,-1,trajectories);
         trajectories->insert(trajectories->end(),tempVector->begin(),tempVector->end() );
+        Pan(Direction::South, cam,map, trajectories,trajMatrix);
     }
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_A)){
         //cam->cameraPosition -= directionLateral * cam->cameraSpeed;
-        Pan(Direction::West, cam,map, trajectories,trajMatrix);
+        
         *tempVector = TrajParser::LoadColumn(shader,-1,trajectories);
         trajectories->insert(trajectories->end(),tempVector->begin(),tempVector->end() );
+        Pan(Direction::West, cam,map, trajectories,trajMatrix);
     }
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_D)){
         //cam->cameraPosition += directionLateral * cam->cameraSpeed;
-        Pan(Direction::East, cam,map, trajectories,trajMatrix);
+        
         *tempVector = TrajParser::LoadColumn(shader,1,trajectories);
         trajectories->insert(trajectories->end(),tempVector->begin(),tempVector->end() );
+        Pan(Direction::East, cam,map, trajectories,trajMatrix);
     }
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_Z)){
-        ZoomIn(cam);
+       
         *tempVector = TrajParser::LoadZoom(shader,trajectories);
         trajectories->insert(trajectories->end(),tempVector->begin(),tempVector->end() );
+         ZoomIn(cam);
     }
     
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_X)){
-        ZoomOut(cam);
+        
         *tempVector = TrajParser::LoadZoom(shader,trajectories);
         trajectories->insert(trajectories->end(),tempVector->begin(),tempVector->end() );
+        ZoomOut(cam);
     }
     
     delete tempVector;
