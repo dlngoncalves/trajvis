@@ -87,21 +87,23 @@ static int trajSegCallback(void *Trajectory, int argc, char **argv, char **azCol
             
             if(TrajParser::basePosition.x == 0 && TrajParser::basePosition.y == 0 && TrajParser::basePosition.z == 0){
                 //think over here we should get the map lat/lon
-//                int x = Map::long2tilex(auxSeg.lon,Map::zoom);
-//                int y = Map::lat2tiley(auxSeg.lat, Map::zoom);
+                int x = Map::long2tilex(auxSeg.lon,Map::zoom);
+                int y = Map::lat2tiley(auxSeg.lat, Map::zoom);
                 
                 //but im not sure I'm updating this
                 //41.5f;
                 //1.5f;
-                int x = Map::long2tilex(1.5f,Map::zoom);
-                int y = Map::lat2tiley(41.5f, Map::zoom);
+                //int x = Map::long2tilex(1.5f,Map::zoom);
+                //int y = Map::lat2tiley(41.5f, Map::zoom);
 
                 
                 double returnedLat = Map::tiley2lat(y, Map::zoom);
                 double returnedLon = Map::tilex2long(x, Map::zoom);
-                
-                //TrajParser::basePosition = traj->latLonToMeters(returnedLat, returnedLon, 17);
-                TrajParser::basePosition = traj->convertLatLon(auxSeg,glm::vec3(0,auxSeg.elevation,0));
+                TrajSeg base;
+                base.lat = returnedLat;
+                base.lon = returnedLon;
+                TrajParser::basePosition = traj->latLonToMeters(returnedLat, returnedLon, Map::zoom);
+                //TrajParser::basePosition = traj->convertLatLon(base,glm::vec3(0,auxSeg.elevation,0));
 
                 int posX = Map::long2tilex(returnedLon, Map::zoom);
                 int posY = Map::lat2tiley(returnedLat, Map::zoom);
@@ -458,6 +460,19 @@ std::vector<TrajParser> TrajParser::LoadLocalTrajectories(GeoPosition location, 
     std::string minLon = std::to_string(corners[0].y);
     std::string maxLon = std::to_string(corners[1].y);
 
+    TrajParser::basePosition = TrajParser::latLonToMeters(location.lat, location.lon, Map::zoom);
+
+    int x = Map::long2tilex(location.lon,Map::zoom);
+    int y = Map::lat2tiley(location.lat, Map::zoom);
+    double returnedLat = Map::tiley2lat(y, Map::zoom);
+    double returnedLon = Map::tilex2long(x, Map::zoom);
+    
+    int posX = Map::long2tilex(returnedLon, Map::zoom);
+    int posY = Map::lat2tiley(returnedLat, Map::zoom);
+    
+    TrajParser::SetScale(posX, posY, Map::zoom);
+    
+    
     //std::string minLat = std::to_string(location.lat-latDelta);
     //std::string maxLat = std::to_string(location.lat+latDelta);
     //std::string minLon = std::to_string(location.lon-lonDelta);

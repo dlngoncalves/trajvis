@@ -63,7 +63,7 @@ public:
     
     static glm::vec3 convertLatLon(TrajSeg &segment,glm::vec3 refPoint);
     
-    glm::vec3 latLonToMeters(float lat, float lon, int zoom);
+    static glm::vec3 latLonToMeters(float lat, float lon, int zoom);
     
     static float resolution(int zoom);
     static glm::vec2 pixelsToMeters(glm::vec2 p, int zoom);
