@@ -37,6 +37,8 @@
 #include <curl/curl.h>
 #include <sqlite3.h>
 #include "Map.hpp"
+#include "Renderer.h"
+#include "UI.h"
 
 #define GL_LOG_FILE "gl.log"
 #define NUM_WAVES 5
@@ -376,6 +378,8 @@ int main () {
     //for now using the first pass shader as the trajectory rendering one
     
     //GL_TESS_CONTROL_SHADER, GL_TESS_EVALUATION_SHADER
+    
+    UI newUi;
     
     GLSLShader trajectoryShader;
     trajectoryShader.LoadFromFile(GL_VERTEX_SHADER, "vert.glsl");

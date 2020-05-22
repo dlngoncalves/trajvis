@@ -10,6 +10,10 @@
 #define Renderer_h
 
 #include <stdio.h>
+#include <vector>
+#include "GLSLShader.h"
+#include "Framebuffer.h"
+#include "Renderable.h"
 
 class Renderer {
 
@@ -17,18 +21,22 @@ private:
     //shaders, framebuffers, camera here?
     //implement a renderable interface?
     static Renderer * _instance;
-    Renderer();
+    Renderer(Framebuffer *startBuffer);// : CurrentRenderTarget(startBuffer) {};
+    
+    Framebuffer *CurrentRenderTarget;
+    
+    std::vector<Renderable *> renderables;
+    
 public:
     
-    static Renderer* instance();
+    void AddToRenderables(Renderable* object);
+    static Renderer* instance(Framebuffer *startBuffer);
     
+    void initializeShader(GLSLShader &Shader); //should abstract away opengl stuff
+    
+    void SetRenderTarget(Framebuffer *RenderTarget);//probably not void and probably with parameters, just thinking stuff
+    
+    void Render();
     ~Renderer();
 };
-
-class Renderable {
-    //dont know what else
-public:
-    virtual void Render() = 0;//so it is a pure virtual funct. const might be used
-};
-
 #endif /* Renderer_h */

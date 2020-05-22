@@ -46,6 +46,10 @@ public://for now
 		cameraSpeed = 0.0;
 	};
 	
+    void UpdateCamera()
+    {
+        
+    }
 };
 
 #endif

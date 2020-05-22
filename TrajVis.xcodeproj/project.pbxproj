@@ -32,6 +32,8 @@
 		9FCE5BB223F005D300DF1491 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9FCE5BB123F005D300DF1491 /* OpenGL.framework */; };
 		9FF24A4C21835A9700012538 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9FF24A4B21835A9700012538 /* Cocoa.framework */; };
 		9FF24A4F21835AA400012538 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9FF24A4E21835AA400012538 /* IOKit.framework */; };
+		D6C42E9E2478181F00D178B8 /* Renderable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6C42E9C2478181F00D178B8 /* Renderable.cpp */; };
+		D6C42EA124781B4600D178B8 /* UI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6C42E9F24781B4600D178B8 /* UI.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -100,6 +102,10 @@
 		9FCE5BB123F005D300DF1491 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		9FF24A4B21835A9700012538 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		9FF24A4E21835AA400012538 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
+		D6C42E9C2478181F00D178B8 /* Renderable.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Renderable.cpp; sourceTree = "<group>"; };
+		D6C42E9D2478181F00D178B8 /* Renderable.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Renderable.h; sourceTree = "<group>"; };
+		D6C42E9F24781B4600D178B8 /* UI.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = UI.cpp; sourceTree = "<group>"; };
+		D6C42EA024781B4600D178B8 /* UI.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = UI.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -182,6 +188,8 @@
 				9F346C96231061860073FC5B /* map_vs.glsl */,
 				9F346C92230C896B0073FC5B /* Map.cpp */,
 				9F346C93230C896B0073FC5B /* Map.hpp */,
+				D6C42E9F24781B4600D178B8 /* UI.cpp */,
+				D6C42EA024781B4600D178B8 /* UI.h */,
 				9F346C882305F96F0073FC5B /* TrajectoryManager.cpp */,
 				9F346C892305F96F0073FC5B /* TrajectoryManager.h */,
 				9F346C852305EA940073FC5B /* GLSLShader.cpp */,
@@ -207,6 +215,8 @@
 				9F7B7B7E2180DCFB00DE9F86 /* gl_utils.h */,
 				9F4F88F92294850600D53DE0 /* TrajParser.cpp */,
 				9F4F88FA2294850600D53DE0 /* TrajParser.h */,
+				D6C42E9C2478181F00D178B8 /* Renderable.cpp */,
+				D6C42E9D2478181F00D178B8 /* Renderable.h */,
 				9F7B7B822180DCFC00DE9F86 /* main.cpp */,
 				9F7B78132180DBE200DE9F86 /* Products */,
 				9F7B7BF32180E03500DE9F86 /* Frameworks */,
@@ -299,12 +309,14 @@
 				9F81EA8621A84B8100F58A7E /* Renderer.cpp in Sources */,
 				9F8C212F23EE024A00B19730 /* imgui_demo.cpp in Sources */,
 				9F7B7B832180DCFC00DE9F86 /* gl_utils.cpp in Sources */,
+				D6C42EA124781B4600D178B8 /* UI.cpp in Sources */,
 				9FB205D22300EE7000A2EA8F /* Weather.cpp in Sources */,
 				9F8C212E23EE024A00B19730 /* imgui.cpp in Sources */,
 				9F346C94230C896B0073FC5B /* Map.cpp in Sources */,
 				9F346C8A2305F96F0073FC5B /* TrajectoryManager.cpp in Sources */,
 				9F4F88FB2294850600D53DE0 /* TrajParser.cpp in Sources */,
 				9F81EA8C21A84D7200F58A7E /* Shader.cpp in Sources */,
+				D6C42E9E2478181F00D178B8 /* Renderable.cpp in Sources */,
 				9F81EA8921A84B9700F58A7E /* InputManager.cpp in Sources */,
 				9F8C213123EE024A00B19730 /* imgui_widgets.cpp in Sources */,
 				9F7B7BF22180DCFD00DE9F86 /* main.cpp in Sources */,

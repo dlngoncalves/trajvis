@@ -18,7 +18,7 @@
 #include "Weather.h"
 #include "GLSLShader.h"
 #include "Map.hpp"
-#include "Renderer.h"
+#include "Renderable.h"
 //moved weather stuff out of here and into its own class
 
 

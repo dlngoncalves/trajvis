@@ -10,15 +10,15 @@
 
 Renderer * Renderer::_instance = nullptr;
 
-Renderer* Renderer::instance()
+Renderer* Renderer::instance(Framebuffer *startBuffer)
 {
     if(_instance == NULL){
-        _instance = new Renderer;
+        _instance = new Renderer(startBuffer);
     }
     return _instance;
 }
 
-Renderer::Renderer()
+Renderer::Renderer(Framebuffer *startBuffer) : CurrentRenderTarget(startBuffer)
 {
     
 }
@@ -26,4 +26,16 @@ Renderer::Renderer()
 Renderer::~Renderer()
 {
     
+}
+
+void Renderer::AddToRenderables(Renderable *object)
+{
+    renderables.push_back(object);
+}
+
+void Renderer::Render()
+{
+    for(auto &object: renderables)
+        //object might set its state? like the frame buffer?
+        object->Render();
 }
