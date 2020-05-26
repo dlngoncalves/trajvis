@@ -14,6 +14,7 @@
 #include "GLSLShader.h"
 #include <glm/glm.hpp>
 #include <vector>
+#include "Renderable.h"
 
 #define TILEMAP_SIZE 5
 //class or struct?
@@ -114,7 +115,7 @@ struct GeoPosition
 //    return *this;
 //}
 
-class Map {
+class Map : public Renderable{
     //
 
 public:
@@ -216,6 +217,9 @@ public:
     //will use one of these to redraw the entire tilemap
     void FillMapTiles();
     void DrawTiles();
+    
+    void Render();
+    void initializeShader();
 };
 
 #endif /* Map_hpp */

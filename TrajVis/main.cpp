@@ -419,6 +419,8 @@ int main () {
     mapShader.AddUniform("curZoom");
     mapShader.UnUse();
     
+    //this shader code initialization is a mess, but should not go inside the renderables, because they are being called here
+    
     glewInit();
     glfwSetCursorPosCallback(g_window, mouse_callback);
     //glfwSetInputMode(g_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -664,7 +666,7 @@ int main () {
 
         mapShader.Use();
         glUniformMatrix4fv(mapShader("view_mat"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
-        
+        myMap.Render();
         //glUniformMatrix4fv(mapShader("model_mat"), 1, GL_FALSE, glm::value_ptr(model_mat));
         
             //myMap.tileMap[0][0].modelMatrix = glm::rotate(myMap.tileMap[0][0].modelMatrix, rotation, glm::vec3(0.0,1.0,0.0));
@@ -685,39 +687,14 @@ int main () {
 //
 //            //glBindVertexArray()
 //        }
-        glPatchParameteri (GL_PATCH_VERTICES, 3);
-        glUniform1f(mapShader("elevationScale"), Tile::tileScale);
-        //this one vao and rebinding everything and one draw call per tile is not very efficient but will stay for now
-        for(int i = 0; i < TILEMAP_SIZE; i++){
-            for(int j = 0; j < TILEMAP_SIZE; j++){
-                glUniformMatrix4fv(mapShader("model_mat"), 1, GL_FALSE, glm::value_ptr(myMap.tileMap[i][j].modelMatrix));
-                
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, myMap.tileMap[i][j].textureID);
-                
-                glActiveTexture(GL_TEXTURE1);
-                glBindTexture(GL_TEXTURE_2D, myMap.tileMap[i][j].height_texID);
-                
-                glBindVertexArray(myMap.tileMap[i][j].vertexArrayObject);
-                //glDrawArrays(GL_TRIANGLES, 0, 6);
-                glDrawArrays (GL_PATCHES, 0, 6);
-                //tileMap[i][j].SetupData();
-                //tileMap[i][j].GetMapData(xCenter, yCenter, curZoom);
-                //tileMap[i][j].modelMatrix = glm::translate(glm::mat4(1.0), glm::vec3(i*100,0,j*100));
-            }
-        }
+
+        
         //glBindVertexArray(myMap.vertexArrayObject);
         //glDrawArrays(GL_TRIANGLES, 0, 6);
         glDisable(GL_DEPTH_TEST);
         trajectoryShader.Use();
 
-        //this doesnt seems to work on mac os
-		//glPointSize(5);
-        //glDisable(GL_LINE_SMOOTH);
-        //glEnable(GL_LINE_WIDTH);
-        //glLineWidth(10);
-        //glEnable(GL_PROGRAM_POINT_SIZE);
-        //glPointSize(5);
+
         glUniformMatrix4fv(trajectoryShader("view_mat"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
         //trajMatrix = glm::translate(trajMatrix, glm::vec3(xtrans,0.0,ytrans));
         //trajMatrix = glm::rotate(trajMatrix, rotation, glm::vec3(0.0,1.0,0.0));

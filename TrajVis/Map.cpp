@@ -655,6 +655,50 @@ void Map::LoadMap(float lat, float lon, int zoomLevel)
 //use a bounding box?
 //goes well with the quadtree if we are storing all zoom levels
 
+void Map::Render()
+{
+    glPatchParameteri (GL_PATCH_VERTICES, 3);
+    glUniform1f(myShader("elevationScale"), Tile::tileScale);
+    //this one vao and rebinding everything and one draw call per tile is not very efficient but will stay for now
+    for(int i = 0; i < TILEMAP_SIZE; i++){
+        for(int j = 0; j < TILEMAP_SIZE; j++){
+            glUniformMatrix4fv(myShader("model_mat"), 1, GL_FALSE, glm::value_ptr(tileMap[i][j].modelMatrix));
+            
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, tileMap[i][j].textureID);
+            
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, tileMap[i][j].height_texID);
+            
+            glBindVertexArray(tileMap[i][j].vertexArrayObject);
+            //glDrawArrays(GL_TRIANGLES, 0, 6);
+            glDrawArrays (GL_PATCHES, 0, 6);
+            //tileMap[i][j].SetupData();
+            //tileMap[i][j].GetMapData(xCenter, yCenter, curZoom);
+            //tileMap[i][j].modelMatrix = glm::translate(glm::mat4(1.0), glm::vec3(i*100,0,j*100));
+        }
+    }
+}
+
+//not gonna use this I think
+void Map::initializeShader()
+{
+    shader.LoadFromFile(GL_VERTEX_SHADER, "map_vs.glsl");
+    shader.LoadFromFile(GL_FRAGMENT_SHADER, "map_fs.glsl");
+    shader.LoadFromFile(GL_TESS_CONTROL_SHADER, "map_ts_control.glsl");
+    shader.LoadFromFile(GL_TESS_EVALUATION_SHADER, "map_ts_eval.glsl");
+    shader.CreateAndLinkProgram();
+    shader.Use();
+    shader.AddUniform("view_mat");
+    shader.AddUniform("projection_mat");
+    shader.AddUniform("model_mat");
+    shader.AddUniform("curTexture");
+    shader.AddUniform("heightMapTex");
+    shader.AddUniform("elevationScale");
+    shader.AddUniform("curZoom");
+    shader.UnUse();
+}
+
 Map::~Map()
 {
     

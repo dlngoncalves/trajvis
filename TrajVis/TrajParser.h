@@ -178,6 +178,7 @@ public:
 //    TrajParser& operator=(const TrajParser&) =delete;
     
     virtual void Render();
+    void initializeShader();
 };
 
 //class GeolifeTrajectory : public TrajParser

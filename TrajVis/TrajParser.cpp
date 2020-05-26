@@ -1129,3 +1129,8 @@ void TrajParser::Render()
 {
     
 }
+
+void TrajParser::initializeShader()
+{
+    
+}

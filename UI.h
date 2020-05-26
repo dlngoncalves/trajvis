@@ -19,7 +19,8 @@ class UI : public Renderable
         InputController *input;
         UI();
         ~UI();
-        virtual void Render();
+        void Render();
+        void initializeShader();
 };
 
 #endif /* UI_h */
